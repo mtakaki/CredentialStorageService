@@ -1,0 +1,75 @@
+# Recommended is 256, but it requires JCE to be installed.
+symmetricKeySize: 256
+
+# Cache used to relieve the pressure on the database.
+publicKeysCache: maximumSize=100, expireAfterAccess=10m
+
+database:
+  # the name of your JDBC driver
+  driverClass: org.hsqldb.jdbcDriver
+
+  # the username
+  user: sa
+
+  # the password
+  password: ""
+
+  # the JDBC URL
+  url: jdbc:hsqldb:mem:testdb
+
+  # any properties specific to your JDBC driver:
+  properties:
+    charSet: UTF-8
+    hibernate.dialect: org.hibernate.dialect.HSQLDialect
+    hibernate.show_sql: true
+    hibernate.hbm2ddl.auto: create
+
+  # the maximum amount of time to wait on an empty pool before throwing an exception
+  maxWaitForConnection: 1s
+
+  # the SQL query to run when validating a connection's liveness
+  validationQuery: SELECT 1 FROM INFORMATION_SCHEMA.SYSTEM_USERS
+
+  # the minimum number of connections to keep open
+  minSize: 8
+
+  # the maximum number of connections to keep open
+  maxSize: 32
+
+  # whether or not idle connections should be validated
+  checkConnectionWhileIdle: true
+
+  checkConnectionOnBorrow: true
+
+server:
+  applicationConnectors:
+    - type: http
+      port: 8080
+  adminConnectors:
+    - type: http
+      port: 8081
+
+circuitBreaker:
+  threshold: 0.5 # failures per second
+  rateType: ONE_MINUTE # Last minute rate
+
+logging:
+  appenders:
+    - type: console
+      threshold: INFO
+      target: stderr
+    - type: file
+      threshold: WARN
+      # The file to which current statements will be logged.
+      currentLogFilename: ./logs/credential_service.log
+      # When the log file rotates, the archived log will be renamed to this and gzipped. The
+      # %d is replaced with the previous day (yyyy-MM-dd). Custom rolling windows can be created
+      # by passing a SimpleDateFormat-compatible format as an argument: "%d{yyyy-MM-dd-hh}".
+      archivedLogFilenamePattern: ./logs/credential_service-%d.log.gz
+      # The number of archived files to keep.
+      archivedFileCount: 5
+      # The timezone used to format dates. HINT: USE THE DEFAULT, UTC.
+      timeZone: UTC
+
+swagger:
+  resourcePackage: com.github.mtakaki.credentialstorage.resources
