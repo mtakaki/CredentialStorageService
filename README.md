@@ -1,6 +1,6 @@
 # Status
 ![Build Status](https://codeship.com/projects/fa99f2c0-c34d-0133-4e04-26a4c37f4e5a/status?branch=master)
-[![Coverage Status](https://coveralls.io/repos/mtakaki/CredentialStorageService/badge.svg?branch=master&service=github)](https://coveralls.io/github/mtakaki/CredentialStorageService?branch=master)
+[![Coverage Status](https://coveralls.io/repos/github/mtakaki/CredentialStorageService/badge.svg?branch=master)](https://coveralls.io/github/mtakaki/CredentialStorageService?branch=master)
 
 CredentialStorageService
 ========================
