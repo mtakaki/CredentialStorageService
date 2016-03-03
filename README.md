@@ -100,7 +100,7 @@ INFO  [2016-03-03 08:33:02,671] org.eclipse.jetty.server.Server: Started @6700ms
 
 There is only one data representation of the credential pair:
 
-```
+```json
 {
   "symmetric_key": "base64key",
   "primary": "encrypted using symmetric_key",
