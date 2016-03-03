@@ -13,9 +13,10 @@ import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 
-import org.apache.shiro.codec.Base64;
 import org.junit.Before;
 import org.junit.Test;
+
+import jodd.util.Base64;
 
 public class EncryptionUtilTest {
     private static final byte[] TEST_RSA_PUBLIC_KEY = new byte[] { 48, -126, 2, 34, 48, 13, 6, 9,

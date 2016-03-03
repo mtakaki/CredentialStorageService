@@ -1,7 +1,5 @@
 package com.github.mtakaki.credentialstorage;
 
-import org.apache.shiro.crypto.RandomNumberGenerator;
-import org.apache.shiro.crypto.SecureRandomNumberGenerator;
 import org.hibernate.SessionFactory;
 
 import com.codahale.metrics.MetricRegistry;
@@ -111,10 +109,6 @@ public class CredentialStorageApplication extends Application<CredentialStorageC
         this.petite.addSelf();
         // The SessionFactory that provides connection to the database.
         this.petite.addBean(SessionFactory.class.getName(), this.hibernate.getSessionFactory());
-        // Registering SecureRandomNumberGenerator that will be used to generate
-        // our hashes.
-        this.petite.addBean(RandomNumberGenerator.class.getName(),
-                new SecureRandomNumberGenerator());
         // Hooking up our configuration just in case we need to pass it around.
         this.petite.addBean(CredentialStorageConfiguration.class.getName(), configuration);
         // Registering our metric registry.

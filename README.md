@@ -1,10 +1,14 @@
+# Status
+![Build Status](https://codeship.com/projects/fa99f2c0-c34d-0133-4e04-26a4c37f4e5a/status?branch=master)
+[![Coverage Status](https://coveralls.io/repos/mtakaki/CredentialStorageService/badge.svg?branch=master&service=github)](https://coveralls.io/github/mtakaki/CredentialStorageService?branch=master)
+
 CredentialStorageService
 ========================
-A Java micro-service that can be used to store resource credentials in a central location. It uses Java 8, [dropwizard](http://www.dropwizard.io), and RSA/AES encryption algorithms.
+A RESTful Java micro-service that can be used to store resource credentials in a central location. It uses Java 8, [dropwizard](http://www.dropwizard.io), and RSA/AES encryption algorithms.
 
-Its main purpose is to remove the need to store credential in code or configuration files and, instead, have the clients retrieve the credentials it needs from a centralized server. It also facilitates credential rotation, as clients can periodically retrieve the credentials from the server.
+Its main purpose is to remove the need to store credential in code or configuration files and, instead, have the clients retrieve the credentials it needs from a centralized server. It also facilitates credential rotation, as clients can periodically retrieve the credentials from the server without downtime.
 
-The data is encrypted using a random AES symmetrical key and the key is encrypted using the client's RSA public key. So the data can only be retrieved using the private key, which resides in the client.
+The data is encrypted using a random AES symmetrical key and this key is encrypted using the client's RSA public key. So the data can only be retrieved using the private key, which resides in the client.
 
 # Setting up
 
@@ -12,7 +16,7 @@ The server is currently setup to use an in-memory database, HSQLDB, and it can b
 
 It is recommended enabling TLS, so all traffic is encrypted. You can use [let's encrypt](https://letsencrypt.org/) to create free certificates.
 
-The client will require RSA certificates, but only the public key will be sent to the server. The public key should be converted into DER format.
+The client will require RSA certificates, but only the public key will be sent to the server. The public key should be converted into DER format. The private key should never be sent to the server.
 
 ## Converting RSA key to DER
 
@@ -104,7 +108,7 @@ There is only one data representation of the credential pair:
 }
 ```
 
-The `symmetric_key` is an AES symmetric key used to encrypt the `primary` and `secondary` attributes. The symmetric key is encrypted using the client's public key and, in order to decrypt the credentials, need to do the following operations in this order:
+The `symmetric_key` is an AES symmetric key used to encrypt the `primary` and `secondary` attributes. The symmetric key is encrypted using the client's public key and, in order to decrypt the credentials, you will need to do the following operations in this order:
 
 1. Decode the symmetric key from base64.
 1. Use the client's private key to decrypt the symmetric key.
@@ -198,7 +202,7 @@ X-Auth-RSA: base64 encoded RSA public key
 
 # Performance
 
-These performance metrics were calculated using the in-memory database, using 30 concurrent clients, and 2000 requests in total. It was running on eclipse on a small laptop, which doesn't provide the best output. The numbers shows it's capable of handling more then 300 requests per second on the `GET` operation. The credential update is not performed as often as a retrieval.
+These performance metrics were calculated using the in-memory database, using 30 concurrent clients, and 2000 requests in total. It was running on eclipse on a small laptop, which doesn't provide the best output. The numbers shows it's capable of handling more than **300 requests per second** on the `GET` operation. The credential update is not performed as often as a retrieval so its performance is not as important as the retrieval.
 
 ## Retrieving credentials
 ```

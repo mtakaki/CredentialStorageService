@@ -18,7 +18,8 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.shiro.codec.Base64;
+
+import jodd.util.Base64;
 
 /**
  * Utility class that wraps encryption operations using RSA asymmetric algorithm
