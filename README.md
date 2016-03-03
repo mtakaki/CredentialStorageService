@@ -4,7 +4,7 @@
 
 CredentialStorageService
 ========================
-A RESTful Java micro-service that can be used to store resource credentials in a central location. It uses Java 8, [dropwizard](http://www.dropwizard.io), and RSA/AES encryption algorithms.
+A RESTful Java micro-service that can be used to store resource credentials in a central location. It uses Java 8, [dropwizard](http://www.dropwizard.io), [lombok](https://projectlombok.org/), and RSA/AES encryption algorithms.
 
 Its main purpose is to remove the need to store credential in code or configuration files and, instead, have the clients retrieve the credentials it needs from a centralized server. It also facilitates credential rotation, as clients can periodically retrieve the credentials from the server without downtime.
 
