@@ -227,10 +227,4 @@ public class CredentialResource {
             return Response.status(Status.NOT_FOUND).build();
         }
     }
-
-    @POST
-    public Response validatePayload() {
-        // TODO Validate the payloads.
-        return null;
-    }
 }
