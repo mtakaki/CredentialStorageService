@@ -1,7 +1,7 @@
 package com.github.mtakaki.credentialstorage.encryption;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
@@ -126,19 +126,17 @@ public class EncryptionUtil {
      *             Thrown if the plain text is too long to be encrypted.
      * @throws BadPaddingException
      *             Thrown if the data is not padded correctly.
-     * @throws UnsupportedEncodingException
-     *             Thrown if we can't convert the plain text into UTF-8 bytes.
      */
     public String encrypt(final SecretKey secretKey, final String plainText)
             throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException,
-            IllegalBlockSizeException, BadPaddingException, UnsupportedEncodingException {
+            IllegalBlockSizeException, BadPaddingException {
         if (StringUtils.isBlank(plainText)) {
             return null;
         }
 
         final Cipher cipher = Cipher.getInstance(SYMMETRIC_CIPHER);
         cipher.init(Cipher.ENCRYPT_MODE, secretKey);
-        final byte[] encryptedBytes = cipher.doFinal(plainText.getBytes("UTF-8"));
+        final byte[] encryptedBytes = cipher.doFinal(plainText.getBytes(StandardCharsets.UTF_8));
         return Base64.encodeToString(encryptedBytes);
     }
 }
