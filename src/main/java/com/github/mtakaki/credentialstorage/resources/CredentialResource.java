@@ -54,6 +54,9 @@ import lombok.AllArgsConstructor;
 @AllArgsConstructor
 @PetiteBean
 public class CredentialResource {
+    private static final String CREDENTIAL_PATH = "/credential/";
+    private static final String PUBLIC_KEY_HEADER = "X-Auth-RSA";
+
     private final CredentialDAO credentialDAO;
     private final Cache<String, EncryptionUtil> encryptionUtil;
     private final CredentialStorageConfiguration configuration;
@@ -66,7 +69,8 @@ public class CredentialResource {
     @Timed
     @CircuitBreaker
     @UnitOfWork
-    public Optional<Credential> getByKey(@HeaderParam("X-Auth-RSA") final String userPublicKey) {
+    public Optional<Credential> getByKey(
+            @HeaderParam(PUBLIC_KEY_HEADER) final String userPublicKey) {
         if (StringUtils.isBlank(userPublicKey)) {
             return Optional.absent();
         }
@@ -78,15 +82,16 @@ public class CredentialResource {
     @ApiOperation(
         value = "Stores the given credential pair into the database.",
         notes = "The credential pair is encrypted using a symmetric algorithm. "
-                + "The symmetrical key is encrypted using the public assymetrical key and stored in the database.")
+                + "The symmetrical key is encrypted using the public assymetrical key and stored in the database. "
+                + "If the credential already exists in the database, it will be completely overwritten with the new one.")
     @Consumes(MediaType.APPLICATION_JSON)
     @Timed
     @CircuitBreaker
     @UnitOfWork
-    public Response storeCredential(@HeaderParam("X-Auth-RSA") final String userPublicKey,
+    public Response storeCredential(@HeaderParam(PUBLIC_KEY_HEADER) final String userPublicKey,
             @Valid final Credential credential) throws ExecutionException, InvalidKeyException,
                     NoSuchAlgorithmException, NoSuchPaddingException, IllegalBlockSizeException,
-                    BadPaddingException, UnsupportedEncodingException {
+                    BadPaddingException {
         if (StringUtils.isBlank(userPublicKey)) {
             return Response.status(Status.BAD_REQUEST).build();
         }
@@ -97,18 +102,18 @@ public class CredentialResource {
                 savedCredentialOptional.isPresent() ? savedCredentialOptional.get() : credential,
                 credential);
 
-        return Response.created(URI.create("/credential/" + userPublicKey)).build();
+        return Response.created(URI.create(CREDENTIAL_PATH + userPublicKey)).build();
     }
 
     @PUT
     @ApiOperation(
         value = "Updates the credential pair stored under the given public asymmetrical key.",
-        notes = "The credential pair is re-encrypted with a symetric algorithm and its key is stored and encrypted using the given assymetrical public key.")
+        notes = "The credential pair is re-encrypted with a symetric algorithm and its new key is stored and encrypted using the given assymetrical public key.")
     @Consumes(MediaType.APPLICATION_JSON)
     @Timed
     @CircuitBreaker
     @UnitOfWork
-    public Response updateCredential(@HeaderParam("X-Auth-RSA") final String userPublicKey,
+    public Response updateCredential(@HeaderParam(PUBLIC_KEY_HEADER) final String userPublicKey,
             @Valid final Credential credential) throws ExecutionException, InvalidKeyException,
                     NoSuchAlgorithmException, NoSuchPaddingException, IllegalBlockSizeException,
                     BadPaddingException, UnsupportedEncodingException {
@@ -156,9 +161,6 @@ public class CredentialResource {
      *             Thrown if the data is too long to be encrypted.
      * @throws BadPaddingException
      *             Thrown if the padding data is incorrect.
-     * @throws UnsupportedEncodingException
-     *             Thrown if we can't convert the plain text strings to UTF-8
-     *             bytes.
      * @throws ExecutionException
      *             Thrown if we fail to create the {@link EncryptionUtil} from
      *             within the cache.
@@ -166,8 +168,7 @@ public class CredentialResource {
     private void fillUpEncryptAndSaveCredential(final String userPublicKey,
             final Credential credential, final Credential incomingCredential)
                     throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException,
-                    IllegalBlockSizeException, BadPaddingException, UnsupportedEncodingException,
-                    ExecutionException {
+                    IllegalBlockSizeException, BadPaddingException, ExecutionException {
         final EncryptionUtil encryptionUtil = this.getEncryptionUtilFromCache(userPublicKey);
         final SecretKey symetricKey = encryptionUtil.generateSymmetricKey();
 
@@ -213,7 +214,7 @@ public class CredentialResource {
     @Timed
     @CircuitBreaker
     @UnitOfWork
-    public Response deleteCredential(@HeaderParam("X-Auth-RSA") final String userPublicKey) {
+    public Response deleteCredential(@HeaderParam(PUBLIC_KEY_HEADER) final String userPublicKey) {
         if (StringUtils.isBlank(userPublicKey)) {
             return Response.status(Status.BAD_REQUEST).build();
         }
