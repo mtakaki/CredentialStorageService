@@ -3,7 +3,6 @@ package com.github.mtakaki.credentialstorage;
 import org.hibernate.SessionFactory;
 
 import com.codahale.metrics.MetricRegistry;
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import com.github.mtakaki.credentialstorage.database.model.Credential;
 import com.github.mtakaki.credentialstorage.resources.CredentialResource;
@@ -88,8 +87,7 @@ public class CredentialStorageApplication extends Application<CredentialStorageC
         this.registerExternalDependencies(configuration, environment);
 
         environment.getObjectMapper().setPropertyNamingStrategy(
-                PropertyNamingStrategy.CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES)
-                .setSerializationInclusion(Include.NON_NULL);
+                PropertyNamingStrategy.CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES);
         environment.jersey().register(this.petite.getBean(CredentialResource.class));
     }
 

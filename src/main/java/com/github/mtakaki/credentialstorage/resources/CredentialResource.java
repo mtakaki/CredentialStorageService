@@ -178,12 +178,9 @@ public class CredentialResource {
         // key. This can only be decrypted using the private keys, so not even
         // us can decrypt it later.
         credential.setSymmetricKey(encryptionUtil.encrypt(symetricKey));
-
         credential.setPrimary(encryptionUtil.encrypt(symetricKey, incomingCredential.getPrimary()));
-        if (StringUtils.isNotBlank(incomingCredential.getSecondary())) {
-            credential.setSecondary(
-                    encryptionUtil.encrypt(symetricKey, incomingCredential.getSecondary()));
-        }
+        credential.setSecondary(
+                encryptionUtil.encrypt(symetricKey, incomingCredential.getSecondary()));
 
         this.credentialDAO.save(credential);
     }

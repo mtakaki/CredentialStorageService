@@ -253,8 +253,7 @@ public class CredentialStorageApplicationTest {
                 Credential.class);
 
         final Credential newCredential = Credential.builder()
-                .primary("user")
-                .secondary("another password").build();
+                .primary("user").build();
         final Response response = this.client
                 .target(String.format("http://localhost:%d/credential", this.RULE.getLocalPort()))
                 .request()
@@ -275,6 +274,7 @@ public class CredentialStorageApplicationTest {
         final Credential updatedCredential = IntegrationTestUtil.extractEntity(updatedGetResponse,
                 Credential.class);
         assertThat(updatedCredential).isNotEqualTo(existingCredential);
+        assertThat(updatedCredential.getSecondary()).isNull();
     }
 
     @Test
