@@ -19,6 +19,7 @@ import io.dropwizard.setup.Environment;
 import io.federecio.dropwizard.swagger.SwaggerBundle;
 import io.federecio.dropwizard.swagger.SwaggerBundleConfiguration;
 
+import de.thomaskrille.dropwizard_template_config.TemplateConfigBundle;
 import jodd.petite.PetiteContainer;
 import jodd.petite.config.AutomagicPetiteConfigurator;
 
@@ -79,6 +80,7 @@ public class CredentialStorageApplication extends Application<CredentialStorageC
                 return configuration.getSwaggerBundleConfiguration();
             }
         });
+        bootstrap.addBundle(new TemplateConfigBundle());
     }
 
     @Override

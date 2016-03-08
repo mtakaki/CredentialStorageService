@@ -1,4 +1,5 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.github.mtakaki</groupId>
@@ -97,7 +98,7 @@
         <dependency>
             <groupId>de.thomaskrille</groupId>
             <artifactId>dropwizard-template-config</artifactId>
-            <version>1.1.0</version>
+            <version>1.2.0</version>
         </dependency>
 
         <!-- Circuit breaker to avoid issues escalate -->
@@ -118,7 +119,7 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>1.16.4</version>
+            <version>1.16.6</version>
             <scope>provided</scope>
         </dependency>
 
@@ -127,6 +128,20 @@
             <groupId>org.hsqldb</groupId>
             <artifactId>hsqldb</artifactId>
             <version>2.3.3</version>
+        </dependency>
+
+        <!-- Pushing logs to logentries service -->
+        <dependency>
+            <groupId>com.github.mtakaki</groupId>
+            <artifactId>logentries-appender</artifactId>
+            <version>0.0.3</version>
+        </dependency>
+        
+        <!-- Pushing metrics to datadoghq -->
+        <dependency>
+            <groupId>org.coursera</groupId>
+            <artifactId>dropwizard-metrics-datadog</artifactId>
+            <version>1.1.2</version>
         </dependency>
 
         <!-- Test dependencies -->
@@ -221,8 +236,10 @@
                         </goals>
                         <configuration>
                             <transformers>
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                <transformer
+                                    implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
+                                <transformer
+                                    implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                                     <mainClass>com.github.mtakaki.credentialstorage.CredentialStorageApplication</mainClass>
                                 </transformer>
                             </transformers>
