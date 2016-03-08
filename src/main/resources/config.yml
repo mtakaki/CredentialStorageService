@@ -70,6 +70,19 @@ logging:
       archivedFileCount: 5
       # The timezone used to format dates. HINT: USE THE DEFAULT, UTC.
       timeZone: UTC
+    - type: logentries
+      threshold: WARN
+      token: ${env.LOGENTRIES_TOKEN}
 
 swagger:
   resourcePackage: com.github.mtakaki.credentialstorage.resources
+
+metrics:
+  frequency: 1 minute                       # Default is 1 second.
+  reporters:
+    - type: datadog
+      transport:
+        type: http
+        apiKey: ${env.DATADOG_KEY}
+        connectTimeout: 1m
+        socketTimeout: 1m
