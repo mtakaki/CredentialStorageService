@@ -1,6 +1,8 @@
 # Status
 ![Build Status](https://codeship.com/projects/fa99f2c0-c34d-0133-4e04-26a4c37f4e5a/status?branch=master)
 [![Coverage Status](https://coveralls.io/repos/github/mtakaki/CredentialStorageService/badge.svg?branch=master)](https://coveralls.io/github/mtakaki/CredentialStorageService?branch=master)
+[![Download](https://maven-badges.herokuapp.com/maven-central/com.github.mtakaki/credential-storage/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.github.mtakaki/credential-storage)
+[![Javadoc](https://javadoc-emblem.rhcloud.com/doc/com.github.mtakaki/credential-storage/badge.svg)](http://www.javadoc.io/doc/com.github.mtakaki/credential-storage)
 
 CredentialStorageService
 ========================
