@@ -60,17 +60,12 @@
             <artifactId>dropwizard-core</artifactId>
             <version>${dropwizard.version}</version>
         </dependency>
-
+        
+        <!-- Using HikariCP to have better reliability with database -->
         <dependency>
-            <groupId>io.dropwizard</groupId>
-            <artifactId>dropwizard-db</artifactId>
-            <version>${dropwizard.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>io.dropwizard</groupId>
-            <artifactId>dropwizard-hibernate</artifactId>
-            <version>${dropwizard.version}</version>
+            <groupId>com.github.mtakaki</groupId>
+            <artifactId>dropwizard-hikaricp</artifactId>
+            <version>0.0.1</version>
         </dependency>
 
         <dependency>
@@ -136,7 +131,7 @@
             <artifactId>logentries-appender</artifactId>
             <version>0.0.3</version>
         </dependency>
-        
+
         <!-- Pushing metrics to datadoghq -->
         <dependency>
             <groupId>org.coursera</groupId>

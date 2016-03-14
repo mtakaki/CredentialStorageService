@@ -53,6 +53,9 @@ circuitBreaker:
   threshold: 0.5 # failures per second
   rateType: ONE_MINUTE # Last minute rate
 
+swagger:
+  resourcePackage: com.github.mtakaki.credentialstorage.resources
+
 logging:
   appenders:
     - type: console
@@ -73,9 +76,6 @@ logging:
     - type: logentries
       threshold: WARN
       token: ${env.LOGENTRIES_TOKEN}
-
-swagger:
-  resourcePackage: com.github.mtakaki.credentialstorage.resources
 
 metrics:
   frequency: 1 minute                       # Default is 1 second.

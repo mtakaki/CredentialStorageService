@@ -4,7 +4,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 
-import org.apache.tomcat.jdbc.pool.PoolProperties;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
@@ -18,6 +17,7 @@ import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.MetricRegistry;
 import com.github.mtakaki.credentialstorage.database.model.Credential;
+import com.zaxxer.hikari.HikariConfig;
 
 import io.dropwizard.db.ManagedPooledDataSource;
 
@@ -69,11 +69,12 @@ public class HibernateDAOTestUtil {
      *         database.
      */
     private SessionFactory buildSessionFactory() {
-        final PoolProperties poolConfig = new PoolProperties();
+        final HikariConfig poolConfig = new HikariConfig();
         poolConfig.setDriverClassName("org.hsqldb.jdbcDriver");
-        poolConfig.setUrl("jdbc:hsqldb:mem:test");
+        poolConfig.setJdbcUrl("jdbc:hsqldb:mem:test");
         poolConfig.setUsername("sa");
         poolConfig.setPassword("");
+
         final ManagedPooledDataSource dataSource = new ManagedPooledDataSource(poolConfig,
                 new MetricRegistry());
 
