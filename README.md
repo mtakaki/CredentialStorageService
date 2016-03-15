@@ -12,6 +12,8 @@ Its main purpose is to remove the need to store credential in code or configurat
 
 The data is encrypted using a random AES symmetrical key and this key is encrypted using the client's RSA public key. So the data can only be retrieved using the private key, which resides in the client.
 
+There's a test sandbox server running the service available at: [https://credential-service.herokuapp.com/swagger](https://credential-service.herokuapp.com/swagger) Please keep in mind this is a test server and it may not be up all the time and it may not be secured.
+
 # Setting up
 
 The server is currently setup to use an in-memory database, HSQLDB, and it can be setup to persist the data in the disk. If you choose to use it in-memory only, you will lose the data if the server crashes or when you restart it.
