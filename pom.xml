@@ -60,7 +60,7 @@
             <artifactId>dropwizard-core</artifactId>
             <version>${dropwizard.version}</version>
         </dependency>
-        
+
         <!-- Using HikariCP to have better reliability with database -->
         <dependency>
             <groupId>com.github.mtakaki</groupId>
@@ -137,6 +137,12 @@
             <groupId>org.coursera</groupId>
             <artifactId>dropwizard-metrics-datadog</artifactId>
             <version>1.1.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>9.4.1208</version>
         </dependency>
 
         <!-- Test dependencies -->
