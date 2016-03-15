@@ -1,1 +1,1 @@
-web: java $JAVA_OPTS -Ddw.database.user=$PG_USER -Ddw.database.password=$PG_PASSWORD -Ddw.database.url=$PG_URL -Ddw.server.applicationConnectors[0].port=$PORT -jar `find target -type f -name '*SNAPSHOT.jar' -print -quit` server src/main/resources/config_postgres.yml
+web: java $JAVA_OPTS -Ddw.server.applicationConnectors[0].port=$PORT -jar `find target -type f -name 'credential-storage*SNAPSHOT.jar' -print -quit` server src/main/resources/config.yml
