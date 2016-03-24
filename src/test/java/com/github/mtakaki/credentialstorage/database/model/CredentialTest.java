@@ -6,7 +6,6 @@ import org.junit.Test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
-import com.github.mtakaki.credentialstorage.database.model.Credential;
 
 import io.dropwizard.jackson.Jackson;
 import io.dropwizard.testing.FixtureHelpers;
