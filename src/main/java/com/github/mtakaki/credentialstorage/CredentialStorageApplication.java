@@ -34,7 +34,7 @@ public class CredentialStorageApplication extends Application<CredentialStorageC
         new CredentialStorageApplication().run(args);
     }
 
-    private PetiteContainer petite;
+    private final PetiteContainer petite = new PetiteContainer();
 
     private final HibernateBundle<CredentialStorageConfiguration> hibernate = new HibernateBundle<CredentialStorageConfiguration>(
             Credential.class) {
@@ -61,11 +61,9 @@ public class CredentialStorageApplication extends Application<CredentialStorageC
     @Override
     public void initialize(final Bootstrap<CredentialStorageConfiguration> bootstrap) {
         // Setting up the dependency injection and enabling the automatic
-        // configuration.
-        this.petite = new PetiteContainer();
-        // Enables to use Class full names when referencing them for injection.
-        // This will prevent us of having conflicts when generic class name
-        // exists.
+        // configuration. Enables to use Class full names when referencing them
+        // for injection. This will prevent us of having conflicts when generic
+        // class name exists.
         this.petite.getConfig().setUseFullTypeNames(true);
         // This enables automatic registration of PetiteBeans.
         final AutomagicPetiteConfigurator petiteConfigurator = new AutomagicPetiteConfigurator();
