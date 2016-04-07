@@ -187,10 +187,8 @@ public class CredentialResource {
      */
     private EncryptionUtil getEncryptionUtilFromCache(final String userPublicKey)
             throws ExecutionException {
-        return this.encryptionUtil.get(userPublicKey, () -> {
-            return new EncryptionUtil(userPublicKey,
-                    CredentialResource.this.configuration.getSymmetricKeySize());
-        });
+        return this.encryptionUtil.get(userPublicKey, () -> new EncryptionUtil(userPublicKey,
+                CredentialResource.this.configuration.getSymmetricKeySize()));
     }
 
     @DELETE
