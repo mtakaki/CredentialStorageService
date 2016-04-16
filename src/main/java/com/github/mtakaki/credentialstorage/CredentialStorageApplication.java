@@ -2,12 +2,13 @@ package com.github.mtakaki.credentialstorage;
 
 import org.hibernate.SessionFactory;
 
-import com.codahale.metrics.MetricRegistry;
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import com.github.mtakaki.credentialstorage.database.model.Credential;
 import com.github.mtakaki.credentialstorage.resources.CredentialResource;
 import com.github.mtakaki.dropwizard.circuitbreaker.jersey.CircuitBreakerBundle;
 import com.github.mtakaki.dropwizard.circuitbreaker.jersey.CircuitBreakerConfiguration;
+import com.github.mtakaki.dropwizard.petite.PetiteBundle;
+import com.github.mtakaki.dropwizard.petite.PetiteConfiguration;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 
@@ -21,7 +22,6 @@ import io.federecio.dropwizard.swagger.SwaggerBundleConfiguration;
 
 import de.thomaskrille.dropwizard_template_config.TemplateConfigBundle;
 import jodd.petite.PetiteContainer;
-import jodd.petite.config.AutomagicPetiteConfigurator;
 
 /**
  * Credential storage application. This is our main application class.
@@ -33,8 +33,6 @@ public class CredentialStorageApplication extends Application<CredentialStorageC
     public static void main(final String[] args) throws Exception {
         new CredentialStorageApplication().run(args);
     }
-
-    private final PetiteContainer petite = new PetiteContainer();
 
     private final HibernateBundle<CredentialStorageConfiguration> hibernate = new HibernateBundle<CredentialStorageConfiguration>(
             Credential.class) {
@@ -53,6 +51,14 @@ public class CredentialStorageApplication extends Application<CredentialStorageC
         }
     };
 
+    private final PetiteBundle<CredentialStorageConfiguration> petite = new PetiteBundle<CredentialStorageConfiguration>() {
+        @Override
+        protected PetiteConfiguration getConfiguration(
+                final CredentialStorageConfiguration configuration) {
+            return configuration.getPetite();
+        }
+    };
+
     @Override
     public String getName() {
         return "credential-storage-service";
@@ -60,17 +66,9 @@ public class CredentialStorageApplication extends Application<CredentialStorageC
 
     @Override
     public void initialize(final Bootstrap<CredentialStorageConfiguration> bootstrap) {
-        // Setting up the dependency injection and enabling the automatic
-        // configuration. Enables to use Class full names when referencing them
-        // for injection. This will prevent us of having conflicts when generic
-        // class name exists.
-        this.petite.getConfig().setUseFullTypeNames(true);
-        // This enables automatic registration of PetiteBeans.
-        final AutomagicPetiteConfigurator petiteConfigurator = new AutomagicPetiteConfigurator();
-        petiteConfigurator.configure(this.petite);
-
         bootstrap.addBundle(this.hibernate);
         bootstrap.addBundle(this.circuitBreakerBundle);
+        bootstrap.addBundle(this.petite);
         bootstrap.addBundle(new SwaggerBundle<CredentialStorageConfiguration>() {
             @Override
             protected SwaggerBundleConfiguration getSwaggerBundleConfiguration(
@@ -84,11 +82,12 @@ public class CredentialStorageApplication extends Application<CredentialStorageC
     @Override
     public void run(final CredentialStorageConfiguration configuration,
             final Environment environment) throws Exception {
-        this.registerExternalDependencies(configuration, environment);
+        final PetiteContainer petiteContainer = this.petite.getPetiteContainer();
+        this.registerExternalDependencies(configuration, environment, petiteContainer);
 
         environment.getObjectMapper().setPropertyNamingStrategy(
                 PropertyNamingStrategy.CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES);
-        environment.jersey().register(this.petite.getBean(CredentialResource.class));
+        environment.jersey().register(petiteContainer.getBean(CredentialResource.class));
     }
 
     /**
@@ -101,18 +100,18 @@ public class CredentialStorageApplication extends Application<CredentialStorageC
      *            The application configuration object.
      * @param environment
      *            The application environment.
+     * @param petiteContainer
+     *            The petite container where the beans will be registered.
      */
     protected void registerExternalDependencies(
-            final CredentialStorageConfiguration configuration, final Environment environment) {
-        this.petite.addSelf();
+            final CredentialStorageConfiguration configuration, final Environment environment,
+            final PetiteContainer petiteContainer) {
         // The SessionFactory that provides connection to the database.
-        this.petite.addBean(SessionFactory.class.getName(), this.hibernate.getSessionFactory());
+        petiteContainer.addBean(SessionFactory.class.getName(), this.hibernate.getSessionFactory());
         // Hooking up our configuration just in case we need to pass it around.
-        this.petite.addBean(CredentialStorageConfiguration.class.getName(), configuration);
-        // Registering our metric registry.
-        this.petite.addBean(MetricRegistry.class.getName(), environment.metrics());
+        petiteContainer.addBean(CredentialStorageConfiguration.class.getName(), configuration);
         // Our cache that will be used to reduce the load on the database.
-        this.petite.addBean(Cache.class.getName(),
+        petiteContainer.addBean(Cache.class.getName(),
                 CacheBuilder.from(configuration.getPublicKeysCache()).recordStats().build());
     }
 }
