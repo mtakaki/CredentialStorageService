@@ -84,27 +84,24 @@ public class EncryptionUtil {
      *            The symmetric key that will be encrypted and converted into
      *            base64.
      * @return The encrypted symmetric key in a base64 string.
-     * @throws NoSuchAlgorithmException
-     *             Thrown if the RSA algorithm is not available.
-     * @throws NoSuchPaddingException
-     *             Thrown if PKCS1 padding is not available.
-     * @throws InvalidKeyException
-     *             Thrown if the public key is invalid.
-     * @throws IllegalBlockSizeException
-     *             Thrown if the symmetric key length is too long to be
-     *             encrypted using RSA algorithm.
-     * @throws BadPaddingException
-     *             Thrown if the data is not padded correctly.
+     * @throws InitializationException
+     *             Thrown if the RSA algorithm is not available, or if PKCS1
+     *             padding is not available, or if the public key is invalid, or
+     *             if the symmetric key length is too long to be encrypted using
+     *             RSA algorithm, or if the data is not padded correctly.
      */
     public String encrypt(final SecretKey symetricKey)
-            throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException,
-            IllegalBlockSizeException, BadPaddingException {
-        final Cipher cipher = Cipher.getInstance(ASYMMETRIC_CIPHER);
+            throws InitializationException {
+        try {
+            final Cipher cipher = Cipher.getInstance(ASYMMETRIC_CIPHER);
+            cipher.init(Cipher.ENCRYPT_MODE, this.publicKey);
 
-        cipher.init(Cipher.ENCRYPT_MODE, this.publicKey);
-
-        final byte[] encryptedSymmetricKey = cipher.doFinal(symetricKey.getEncoded());
-        return Base64.encodeToString(encryptedSymmetricKey);
+            final byte[] encryptedSymmetricKey = cipher.doFinal(symetricKey.getEncoded());
+            return Base64.encodeToString(encryptedSymmetricKey);
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException
+                | IllegalBlockSizeException | BadPaddingException e) {
+            throw new InitializationException(e);
+        }
     }
 
     /**
@@ -116,27 +113,27 @@ public class EncryptionUtil {
      * @param plainText
      *            The text that will be encrypted.
      * @return A base64 string representing the encrypted given plain text.
-     * @throws NoSuchAlgorithmException
-     *             Thrown if the AES algorithm is not available.
-     * @throws NoSuchPaddingException
-     *             Thrown if PKCS1 padding is not available.
-     * @throws InvalidKeyException
-     *             Thrown if the symmetric key is invalid.
-     * @throws IllegalBlockSizeException
-     *             Thrown if the plain text is too long to be encrypted.
-     * @throws BadPaddingException
-     *             Thrown if the data is not padded correctly.
+     * @throws InitializationException
+     *             Thrown if the AES algorithm is not available, or if PKCS1
+     *             padding is not available, or if the symmetric key is invalid,
+     *             or if the plain text is too long to be encrypted, or if the
+     *             data is not padded correctly.
      */
     public String encrypt(final SecretKey secretKey, final String plainText)
-            throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException,
-            IllegalBlockSizeException, BadPaddingException {
+            throws InitializationException {
         if (StringUtils.isBlank(plainText)) {
             return null;
         }
 
-        final Cipher cipher = Cipher.getInstance(SYMMETRIC_CIPHER);
-        cipher.init(Cipher.ENCRYPT_MODE, secretKey);
-        final byte[] encryptedBytes = cipher.doFinal(plainText.getBytes(StandardCharsets.UTF_8));
-        return Base64.encodeToString(encryptedBytes);
+        try {
+            final Cipher cipher = Cipher.getInstance(SYMMETRIC_CIPHER);
+            cipher.init(Cipher.ENCRYPT_MODE, secretKey);
+            final byte[] encryptedBytes = cipher
+                    .doFinal(plainText.getBytes(StandardCharsets.UTF_8));
+            return Base64.encodeToString(encryptedBytes);
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException
+                | IllegalBlockSizeException | BadPaddingException e) {
+            throw new InitializationException(e);
+        }
     }
 }

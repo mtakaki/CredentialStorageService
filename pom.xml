@@ -104,9 +104,9 @@
 
         <!-- Dependency injection -->
         <dependency>
-            <groupId>org.jodd</groupId>
-            <artifactId>jodd-petite</artifactId>
-            <version>3.6.6</version>
+            <groupId>com.github.mtakaki</groupId>
+            <artifactId>dropwizard-petite</artifactId>
+            <version>0.0.1</version>
         </dependency>
 
         <!-- Avoids boilerplate code -->

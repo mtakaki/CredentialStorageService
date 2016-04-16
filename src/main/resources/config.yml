@@ -86,3 +86,9 @@ metrics:
         apiKey: ${env.DATADOG_KEY}
         connectTimeout: 1m
         socketTimeout: 1m
+
+# Jodd Petite dependency injection settings.
+petite:
+  useFullTypeNames: true
+  automagicConfigurator: true
+  useMetrics: true

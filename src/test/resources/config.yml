@@ -55,3 +55,9 @@ circuitBreaker:
 
 swagger:
   resourcePackage: com.mtakaki.credentialstorage.resources
+
+# Jodd Petite dependency injection settings.
+petite:
+  useFullTypeNames: true
+  automagicConfigurator: true
+  useMetrics: true

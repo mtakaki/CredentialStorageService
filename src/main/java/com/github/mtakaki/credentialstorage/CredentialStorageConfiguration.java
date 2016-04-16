@@ -5,6 +5,7 @@ import javax.validation.constraints.NotNull;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.github.mtakaki.dropwizard.circuitbreaker.jersey.CircuitBreakerConfiguration;
+import com.github.mtakaki.dropwizard.petite.PetiteConfiguration;
 import com.google.common.cache.CacheBuilderSpec;
 
 import io.dropwizard.Configuration;
@@ -38,4 +39,7 @@ public class CredentialStorageConfiguration extends Configuration {
     private SwaggerBundleConfiguration swaggerBundleConfiguration;
 
     private int symmetricKeySize;
+
+    @NotNull
+    private final PetiteConfiguration petite = new PetiteConfiguration();
 }

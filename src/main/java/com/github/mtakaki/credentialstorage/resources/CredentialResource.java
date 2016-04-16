@@ -1,15 +1,9 @@
 package com.github.mtakaki.credentialstorage.resources;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URI;
-import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 
-import javax.crypto.BadPaddingException;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.validation.Valid;
 import javax.ws.rs.Consumes;
@@ -31,6 +25,7 @@ import com.github.mtakaki.credentialstorage.CredentialStorageConfiguration;
 import com.github.mtakaki.credentialstorage.database.CredentialDAO;
 import com.github.mtakaki.credentialstorage.database.model.Credential;
 import com.github.mtakaki.credentialstorage.encryption.EncryptionUtil;
+import com.github.mtakaki.credentialstorage.encryption.InitializationException;
 import com.github.mtakaki.dropwizard.circuitbreaker.jersey.CircuitBreaker;
 import com.google.common.base.Optional;
 import com.google.common.cache.Cache;
@@ -89,9 +84,8 @@ public class CredentialResource {
     @CircuitBreaker
     @UnitOfWork
     public Response storeCredential(@HeaderParam(PUBLIC_KEY_HEADER) final String userPublicKey,
-            @Valid final Credential credential) throws ExecutionException, InvalidKeyException,
-                    NoSuchAlgorithmException, NoSuchPaddingException, IllegalBlockSizeException,
-                    BadPaddingException {
+            @Valid final Credential credential)
+            throws ExecutionException, NoSuchAlgorithmException, InitializationException {
         if (StringUtils.isBlank(userPublicKey)) {
             return Response.status(Status.BAD_REQUEST).build();
         }
@@ -114,9 +108,8 @@ public class CredentialResource {
     @CircuitBreaker
     @UnitOfWork
     public Response updateCredential(@HeaderParam(PUBLIC_KEY_HEADER) final String userPublicKey,
-            @Valid final Credential credential) throws ExecutionException, InvalidKeyException,
-                    NoSuchAlgorithmException, NoSuchPaddingException, IllegalBlockSizeException,
-                    BadPaddingException, UnsupportedEncodingException {
+            @Valid final Credential credential)
+            throws ExecutionException, InitializationException, NoSuchAlgorithmException {
         if (StringUtils.isBlank(userPublicKey)) {
             return Response.status(Status.BAD_REQUEST).build();
         }
@@ -152,25 +145,20 @@ public class CredentialResource {
      *            of data.
      * @throws NoSuchAlgorithmException
      *             Thrown if either AES or RSA algorithms are not available.
-     * @throws NoSuchPaddingException
-     *             Thrown if the padding algorithm is not available.
-     * @throws InvalidKeyException
-     *             Thrown if the incoming symmetric key is invalid. We don't
-     *             have any way of validating it beforehand.
-     * @throws IllegalBlockSizeException
-     *             Thrown if the data is too long to be encrypted.
-     * @throws BadPaddingException
-     *             Thrown if the padding data is incorrect.
+     * @throws InitializationException
+     *             Thrown if the padding algorithm is not available, or if the
+     *             incoming symmetric key is invalid. We don't have any way of
+     *             validating it beforehand, or if the data is too long to be
+     *             encrypted, or if the padding data is incorrect.
      * @throws ExecutionException
      *             Thrown if we fail to create the {@link EncryptionUtil} from
      *             within the cache.
      */
     private void fillUpEncryptAndSaveCredential(final String userPublicKey,
             final Credential credential, final Credential incomingCredential)
-                    throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException,
-                    IllegalBlockSizeException, BadPaddingException, ExecutionException {
-        final EncryptionUtil encryptionUtil = this.getEncryptionUtilFromCache(userPublicKey);
-        final SecretKey symetricKey = encryptionUtil.generateSymmetricKey();
+            throws InitializationException, ExecutionException, NoSuchAlgorithmException {
+        final EncryptionUtil cachedEncryptionUtil = this.getEncryptionUtilFromCache(userPublicKey);
+        final SecretKey symetricKey = cachedEncryptionUtil.generateSymmetricKey();
 
         // The asymmetric key is stored as it is. At this point there is not
         // security threat to store it like this.
@@ -178,10 +166,11 @@ public class CredentialResource {
         // The symmetric key is stored encrypted using the asymmetric public
         // key. This can only be decrypted using the private keys, so not even
         // us can decrypt it later.
-        credential.setSymmetricKey(encryptionUtil.encrypt(symetricKey));
-        credential.setPrimary(encryptionUtil.encrypt(symetricKey, incomingCredential.getPrimary()));
+        credential.setSymmetricKey(cachedEncryptionUtil.encrypt(symetricKey));
+        credential.setPrimary(
+                cachedEncryptionUtil.encrypt(symetricKey, incomingCredential.getPrimary()));
         credential.setSecondary(
-                encryptionUtil.encrypt(symetricKey, incomingCredential.getSecondary()));
+                cachedEncryptionUtil.encrypt(symetricKey, incomingCredential.getSecondary()));
 
         this.credentialDAO.save(credential);
     }
@@ -198,14 +187,8 @@ public class CredentialResource {
      */
     private EncryptionUtil getEncryptionUtilFromCache(final String userPublicKey)
             throws ExecutionException {
-        return this.encryptionUtil.get(userPublicKey,
-                new Callable<EncryptionUtil>() {
-                    @Override
-                    public EncryptionUtil call() throws Exception {
-                        return new EncryptionUtil(userPublicKey,
-                                CredentialResource.this.configuration.getSymmetricKeySize());
-                    }
-                });
+        return this.encryptionUtil.get(userPublicKey, () -> new EncryptionUtil(userPublicKey,
+                CredentialResource.this.configuration.getSymmetricKeySize()));
     }
 
     @DELETE
