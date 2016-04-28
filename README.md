@@ -1,6 +1,7 @@
 # Status
 ![Build Status](https://codeship.com/projects/fa99f2c0-c34d-0133-4e04-26a4c37f4e5a/status?branch=master)
 [![Coverage Status](https://coveralls.io/repos/github/mtakaki/CredentialStorageService/badge.svg?branch=master)](https://coveralls.io/github/mtakaki/CredentialStorageService?branch=master)
+[![Codacy Badge](https://api.codacy.com/project/badge/grade/5d417f9c2dfc45b69ee4cd33552f4c5a)](https://www.codacy.com/app/mitsuotakaki/CredentialStorageService)
 [![Download](https://maven-badges.herokuapp.com/maven-central/com.github.mtakaki/credential-storage/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.github.mtakaki/credential-storage)
 [![Javadoc](https://javadoc-emblem.rhcloud.com/doc/com.github.mtakaki/credential-storage/badge.svg)](http://www.javadoc.io/doc/com.github.mtakaki/credential-storage)
 
@@ -13,6 +14,11 @@ Its main purpose is to remove the need to store credential in code or configurat
 The data is encrypted using a random AES symmetrical key and this key is encrypted using the client's RSA public key. So the data can only be retrieved using the private key, which resides in the client.
 
 There's a test sandbox server running the service available at: [https://credential-service.herokuapp.com/swagger](https://credential-service.herokuapp.com/swagger) Please keep in mind this is a test server and it may not be up all the time and it may not be secured.
+
+Integrations:
+
+- [Dropwizard hibernate bundle](https://github.com/mtakaki/CredentialStorageService-dw-hibernate)
+    - Automatically retrieves database credentials and polls for credentials changes. Allows database credentials rotation in production without downtime.
 
 # Setting up
 
@@ -283,4 +289,4 @@ Percentage of the requests served within a certain time (ms)
 
 # Next steps
 
-Create client integration for hibernate, to automatically retrieve the credentials from the server.
+Create more integrations.
