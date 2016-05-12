@@ -57,12 +57,35 @@ swagger:
   resourcePackage: com.github.mtakaki.credentialstorage.resources
 
 logging:
-  level: ${env.LOG_LEVEL!'INFO'}
   appenders:
     - type: console
-      threshold: ${env.LOG_LEVEL!'INFO'}
-      target: stdout
-      timeZone: ${env.TIME_ZONE!'UTC'}
+      threshold: INFO
+      target: stderr
+    - type: file
+      threshold: WARN
+      # The file to which current statements will be logged.
+      currentLogFilename: ./logs/credential_service.log
+      # When the log file rotates, the archived log will be renamed to this and gzipped. The
+      # %d is replaced with the previous day (yyyy-MM-dd). Custom rolling windows can be created
+      # by passing a SimpleDateFormat-compatible format as an argument: "%d{yyyy-MM-dd-hh}".
+      archivedLogFilenamePattern: ./logs/credential_service-%d.log.gz
+      # The number of archived files to keep.
+      archivedFileCount: 5
+      # The timezone used to format dates. HINT: USE THE DEFAULT, UTC.
+      timeZone: UTC
+    - type: logentries
+      threshold: WARN
+      token: ${env.LOGENTRIES_TOKEN}
+
+metrics:
+  frequency: 1 minute                       # Default is 1 second.
+  reporters:
+    - type: datadog
+      transport:
+        type: http
+        apiKey: ${env.DATADOG_KEY}
+        connectTimeout: 1m
+        socketTimeout: 1m
 
 # Jodd Petite dependency injection settings.
 petite:

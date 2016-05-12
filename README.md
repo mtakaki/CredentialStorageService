@@ -290,3 +290,7 @@ Percentage of the requests served within a certain time (ms)
 # Next steps
 
 Create more integrations.
+
+# Docker
+
+This service is also available at docker: https://hub.docker.com/r/mtakaki/credential-storage-service/
