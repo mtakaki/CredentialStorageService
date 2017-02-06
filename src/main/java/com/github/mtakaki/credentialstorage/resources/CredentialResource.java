@@ -118,11 +118,10 @@ public class CredentialResource {
         // exist in the database.
         final Optional<Credential> savedCredentialOptional = this.credentialDAO
                 .getCredentialByKey(userPublicKey);
-        if (!savedCredentialOptional.isPresent()) {
-            return Response.status(Status.NOT_FOUND).build();
-        }
 
         final Credential savedCredential = savedCredentialOptional.get();
+        savedCredential.setPrimary(credential.getPrimary());
+        savedCredential.setSecondary(credential.getSecondary());
 
         this.fillUpEncryptAndSaveCredential(userPublicKey, savedCredential, credential);
 
@@ -160,17 +159,17 @@ public class CredentialResource {
         final EncryptionUtil cachedEncryptionUtil = this.getEncryptionUtilFromCache(userPublicKey);
         final SecretKey symetricKey = cachedEncryptionUtil.generateSymmetricKey();
 
-        // The asymmetric key is stored as it is. At this point there is not
+        // The asymmetric key is stored as it is. At this point there is no
         // security threat to store it like this.
         credential.setKey(userPublicKey);
         // The symmetric key is stored encrypted using the asymmetric public
         // key. This can only be decrypted using the private keys, so not even
         // us can decrypt it later.
         credential.setSymmetricKey(cachedEncryptionUtil.encrypt(symetricKey));
-        credential.setPrimary(
-                cachedEncryptionUtil.encrypt(symetricKey, incomingCredential.getPrimary()));
-        credential.setSecondary(
-                cachedEncryptionUtil.encrypt(symetricKey, incomingCredential.getSecondary()));
+        cachedEncryptionUtil.encrypt(symetricKey, incomingCredential.getPrimary())
+                .ifPresent(encryptedPrimary -> credential.setPrimary(encryptedPrimary));
+        cachedEncryptionUtil.encrypt(symetricKey, incomingCredential.getSecondary())
+                .ifPresent(encryptedSecondary -> credential.setSecondary(encryptedSecondary));
 
         this.credentialDAO.save(credential);
     }

@@ -8,6 +8,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
+import java.util.Optional;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -78,7 +79,7 @@ public class EncryptionUtil {
     /**
      * Encrypts the given symmetric key using the internal asymmetrical public
      * key. It can only be decrypted using the private key, which is not
-     * available.
+     * available in the server side as only the the client has it.
      *
      * @param symetricKey
      *            The symmetric key that will be encrypted and converted into
@@ -108,29 +109,31 @@ public class EncryptionUtil {
      * Encrypts the plain text using the given symmetric key. This text can be
      * decrypted using the same symmetric key.
      *
-     * @param secretKey
+     * @param symmetricSecretKey
      *            The symmetric key used to encrypt the given plain text.
      * @param plainText
      *            The text that will be encrypted.
-     * @return A base64 string representing the encrypted given plain text.
+     * @return A base64 string representing the encrypted given plain text. If
+     *         the give plain text is blank, we'll return just an
+     *         {@code Optional.empty()}.
      * @throws InitializationException
      *             Thrown if the AES algorithm is not available, or if PKCS1
      *             padding is not available, or if the symmetric key is invalid,
      *             or if the plain text is too long to be encrypted, or if the
      *             data is not padded correctly.
      */
-    public String encrypt(final SecretKey secretKey, final String plainText)
+    public Optional<String> encrypt(final SecretKey symmetricSecretKey, final String plainText)
             throws InitializationException {
         if (StringUtils.isBlank(plainText)) {
-            return null;
+            return Optional.empty();
         }
 
         try {
             final Cipher cipher = Cipher.getInstance(SYMMETRIC_CIPHER);
-            cipher.init(Cipher.ENCRYPT_MODE, secretKey);
+            cipher.init(Cipher.ENCRYPT_MODE, symmetricSecretKey);
             final byte[] encryptedBytes = cipher
                     .doFinal(plainText.getBytes(StandardCharsets.UTF_8));
-            return Base64.encodeToString(encryptedBytes);
+            return Optional.of(Base64.encodeToString(encryptedBytes));
         } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException
                 | IllegalBlockSizeException | BadPaddingException e) {
             throw new InitializationException(e);

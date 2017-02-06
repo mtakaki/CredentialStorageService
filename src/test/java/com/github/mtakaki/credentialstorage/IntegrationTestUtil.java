@@ -2,6 +2,7 @@ package com.github.mtakaki.credentialstorage;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
 
 import javax.ws.rs.core.Response;
 
@@ -17,7 +18,13 @@ public class IntegrationTestUtil {
     public static <T> T extractEntity(final Response response, final Class<T> clazz)
             throws IOException, JsonParseException, JsonMappingException {
         final InputStream entityInputStream = (InputStream) response.getEntity();
-        final T entity = MAPPER.readValue(entityInputStream, clazz);
-        return entity;
+        return MAPPER.readValue(entityInputStream, clazz);
+    }
+
+    public static <T> List<T> extractEntityList(final Response response, final Class<T> clazz)
+            throws IOException, JsonParseException, JsonMappingException {
+        final InputStream entityInputStream = (InputStream) response.getEntity();
+        return MAPPER.readValue(entityInputStream,
+                MAPPER.getTypeFactory().constructCollectionType(List.class, clazz));
     }
 }

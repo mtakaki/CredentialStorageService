@@ -1,10 +1,19 @@
 package com.github.mtakaki.credentialstorage;
 
+import java.util.EnumSet;
+
+import javax.servlet.DispatcherType;
+
+import org.eclipse.jetty.servlet.FilterHolder;
+import org.glassfish.jersey.server.filter.RolesAllowedDynamicFeature;
+import org.glassfish.jersey.servlet.ServletContainer;
 import org.hibernate.SessionFactory;
 
+import com.codahale.metrics.jersey2.InstrumentedResourceMethodApplicationListener;
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import com.github.mtakaki.credentialstorage.database.model.Credential;
 import com.github.mtakaki.credentialstorage.resources.CredentialResource;
+import com.github.mtakaki.credentialstorage.resources.admin.AuditResource;
 import com.github.mtakaki.dropwizard.circuitbreaker.jersey.CircuitBreakerBundle;
 import com.github.mtakaki.dropwizard.circuitbreaker.jersey.CircuitBreakerConfiguration;
 import com.github.mtakaki.dropwizard.petite.PetiteBundle;
@@ -15,6 +24,13 @@ import com.google.common.cache.CacheBuilder;
 import io.dropwizard.Application;
 import io.dropwizard.db.DataSourceFactory;
 import io.dropwizard.hibernate.HibernateBundle;
+import io.dropwizard.hibernate.UnitOfWorkApplicationListener;
+import io.dropwizard.jackson.Jackson;
+import io.dropwizard.jersey.DropwizardResourceConfig;
+import io.dropwizard.jersey.jackson.JacksonMessageBodyProvider;
+import io.dropwizard.jersey.setup.JerseyContainerHolder;
+import io.dropwizard.jersey.setup.JerseyEnvironment;
+import io.dropwizard.jetty.GzipFilterFactory;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import io.federecio.dropwizard.swagger.SwaggerBundle;
@@ -88,6 +104,11 @@ public class CredentialStorageApplication extends Application<CredentialStorageC
         environment.getObjectMapper().setPropertyNamingStrategy(
                 PropertyNamingStrategy.CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES);
         environment.jersey().register(petiteContainer.getBean(CredentialResource.class));
+
+        // Admin resources.
+        final JerseyEnvironment adminJerseyEnvironment = this.setupAdminEnvironment(configuration,
+                environment);
+        adminJerseyEnvironment.register(petiteContainer.getBean(AuditResource.class));
     }
 
     /**
@@ -113,5 +134,45 @@ public class CredentialStorageApplication extends Application<CredentialStorageC
         // Our cache that will be used to reduce the load on the database.
         petiteContainer.addBean(Cache.class.getName(),
                 CacheBuilder.from(configuration.getPublicKeysCache()).recordStats().build());
+    }
+
+    /**
+     * Enables registering resource to the admin environment. The resources
+     * registered under the returned {@link JerseyEnvironment} are only
+     * accessible from the admin port.
+     *
+     * @param environment
+     *            The application environment.
+     * @return The admin environment.
+     */
+    private JerseyEnvironment setupAdminEnvironment(final CredentialStorageConfiguration configuration,
+            final Environment environment) {
+        final DropwizardResourceConfig jerseyConfig = new DropwizardAdminResourceConfig(
+                environment.metrics());
+        final JerseyContainerHolder servletContainer = new JerseyContainerHolder(
+                new ServletContainer(jerseyConfig));
+        final JerseyEnvironment jerseyEnvironment = new JerseyEnvironment(servletContainer,
+                jerseyConfig);
+
+        // Our resources will be under the URL /admin/.
+        environment.admin().addServlet("admin resources", servletContainer.getContainer())
+                .addMapping("/admin/*");
+
+        // Adding support to GZip encoding, important to reduce HTTP traffic.
+        final FilterHolder holder = new FilterHolder(new GzipFilterFactory().build());
+        environment.getAdminContext().addFilter(holder, "/admin/",
+                EnumSet.allOf(DispatcherType.class));
+
+        // These are needed to hook up Jackson serialization and
+        // deserialization, UnitOfWork, Timed, CircuitBreaker, etc.
+        jerseyEnvironment.register(new JacksonMessageBodyProvider(Jackson.newObjectMapper(),
+                environment.getValidator()));
+        jerseyEnvironment.register(
+                new UnitOfWorkApplicationListener("admin", this.hibernate.getSessionFactory()));
+        jerseyEnvironment.register(
+                new InstrumentedResourceMethodApplicationListener(environment.metrics()));
+        jerseyEnvironment.register(new RolesAllowedDynamicFeature());
+
+        return jerseyEnvironment;
     }
 }

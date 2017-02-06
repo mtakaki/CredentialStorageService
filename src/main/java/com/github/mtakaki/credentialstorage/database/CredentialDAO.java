@@ -1,5 +1,7 @@
 package com.github.mtakaki.credentialstorage.database;
 
+import java.util.List;
+
 import org.hibernate.Criteria;
 import org.hibernate.Query;
 import org.hibernate.SessionFactory;
@@ -59,5 +61,14 @@ public class CredentialDAO extends AbstractDAO<Credential> {
         final Query query = this.currentSession().createQuery("delete Credential where key = :key")
                 .setString("key", key);
         return query.executeUpdate() != 0;
+    }
+
+    /**
+     * Retrieves all credentials from the database.
+     *
+     * @return All credentials.
+     */
+    public List<Credential> getAllCredentials() {
+        return this.list(this.criteria());
     }
 }
