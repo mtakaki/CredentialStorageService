@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.github.mtakaki.credentialstorage.database.CredentialDAO;
 import com.github.mtakaki.credentialstorage.database.model.Credential;
 
 public class CredentialDAOTest {
@@ -13,7 +12,7 @@ public class CredentialDAOTest {
     private HibernateDAOTestUtil testUtil;
 
     @Before
-    public void setup() {
+    public void setUp() {
         this.testUtil = new HibernateDAOTestUtil();
         this.dao = new CredentialDAO(this.testUtil.getSessionFactory());
     }
