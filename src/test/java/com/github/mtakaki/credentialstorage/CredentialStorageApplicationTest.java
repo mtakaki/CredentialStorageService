@@ -3,6 +3,7 @@ package com.github.mtakaki.credentialstorage;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
+import java.util.List;
 
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.Entity;
@@ -27,6 +28,10 @@ import io.dropwizard.util.Duration;
 import jodd.util.Base64;
 
 public class CredentialStorageApplicationTest {
+    private static final String X_AUTH_RSA_HEADER = "X-Auth-RSA";
+    private static final String AUDIT_END_POINT = "http://localhost:%d/admin/audit/";
+    private static final String CREDENTIAL_END_POINT = "http://localhost:%d/credential";
+
     private static final byte[] TEST_RSA_PUBLIC_KEY = new byte[] { 48, -126, 2, 34, 48, 13, 6, 9,
             42, -122, 72, -122, -9, 13, 1, 1, 1, 5, 0, 3, -126, 2, 15, 0, 48, -126, 2, 10, 2, -126,
             2, 1, 0, -56, 114, -107, 40, 75, -102, 18, -24, 65, 81, -75, 56, -36, -125, 115, -115,
@@ -117,19 +122,38 @@ public class CredentialStorageApplicationTest {
                 .build("test client");
 
         assertThat(this.client
-                .target(String.format("http://localhost:%d/credential", this.RULE.getLocalPort()))
+                .target(String.format(CREDENTIAL_END_POINT, this.RULE.getLocalPort()))
                 .request()
-                .header("X-Auth-RSA", BASE_64_PUBLIC_KEY)
+                .header(X_AUTH_RSA_HEADER, BASE_64_PUBLIC_KEY)
                 .post(Entity.json(this.credential)).getStatus())
                         .isEqualTo(Status.CREATED.getStatusCode());
     }
 
     @Test
+    public void testAuditListCredentials()
+            throws JsonParseException, JsonMappingException, IOException {
+        final Response response = this.client
+                .target(String.format(AUDIT_END_POINT, this.RULE.getAdminPort()))
+                .request()
+                .get();
+
+        assertThat(response.getStatus()).isEqualTo(Status.OK.getStatusCode());
+        assertThat(response.getMediaType()).isEqualTo(MediaType.APPLICATION_JSON_TYPE);
+
+        final List<Credential> responseCredentialList = IntegrationTestUtil
+                .extractEntityList(response, Credential.class);
+        assertThat(responseCredentialList).hasSize(1);
+        assertThat(responseCredentialList.get(0).getSymmetricKey()).hasSize(684);
+        assertThat(responseCredentialList.get(0).getPrimary()).hasSize(24);
+        assertThat(responseCredentialList.get(0).getSecondary()).hasSize(24);
+    }
+
+    @Test
     public void testGetCredential() throws JsonParseException, JsonMappingException, IOException {
         final Response response = this.client
-                .target(String.format("http://localhost:%d/credential", this.RULE.getLocalPort()))
+                .target(String.format(CREDENTIAL_END_POINT, this.RULE.getLocalPort()))
                 .request()
-                .header("X-Auth-RSA", BASE_64_PUBLIC_KEY)
+                .header(X_AUTH_RSA_HEADER, BASE_64_PUBLIC_KEY)
                 .get();
 
         assertThat(response.getStatus()).isEqualTo(Status.OK.getStatusCode());
@@ -146,9 +170,9 @@ public class CredentialStorageApplicationTest {
     public void testGetCredentialNotFound()
             throws JsonParseException, JsonMappingException, IOException {
         final Response response = this.client
-                .target(String.format("http://localhost:%d/credential", this.RULE.getLocalPort()))
+                .target(String.format(CREDENTIAL_END_POINT, this.RULE.getLocalPort()))
                 .request()
-                .header("X-Auth-RSA", "not found")
+                .header(X_AUTH_RSA_HEADER, "not found")
                 .get();
 
         assertThat(response.getStatus()).isEqualTo(Status.NOT_FOUND.getStatusCode());
@@ -158,7 +182,7 @@ public class CredentialStorageApplicationTest {
     public void testGetCredentialMissingHeader()
             throws JsonParseException, JsonMappingException, IOException {
         final Response response = this.client
-                .target(String.format("http://localhost:%d/credential", this.RULE.getLocalPort()))
+                .target(String.format(CREDENTIAL_END_POINT, this.RULE.getLocalPort()))
                 .request()
                 .get();
 
@@ -169,9 +193,9 @@ public class CredentialStorageApplicationTest {
     public void testPostCredentialWithExistingCredential()
             throws JsonParseException, JsonMappingException, IOException {
         final Response response = this.client
-                .target(String.format("http://localhost:%d/credential", this.RULE.getLocalPort()))
+                .target(String.format(CREDENTIAL_END_POINT, this.RULE.getLocalPort()))
                 .request()
-                .header("X-Auth-RSA", BASE_64_PUBLIC_KEY)
+                .header(X_AUTH_RSA_HEADER, BASE_64_PUBLIC_KEY)
                 .post(Entity.json(this.credential));
 
         assertThat(response.getStatus()).isEqualTo(Status.CREATED.getStatusCode());
@@ -182,26 +206,26 @@ public class CredentialStorageApplicationTest {
             throws JsonParseException, JsonMappingException, IOException {
         // Verifying that our second credential is not present yet.
         final Response missingGetResponse = this.client
-                .target(String.format("http://localhost:%d/credential", this.RULE.getLocalPort()))
+                .target(String.format(CREDENTIAL_END_POINT, this.RULE.getLocalPort()))
                 .request()
-                .header("X-Auth-RSA", BASE_64_PUBLIC_KEY_2)
+                .header(X_AUTH_RSA_HEADER, BASE_64_PUBLIC_KEY_2)
                 .get();
         assertThat(missingGetResponse.getStatus()).isEqualTo(Status.NOT_FOUND.getStatusCode());
 
         // Posting the new credential.
         final Response response = this.client
-                .target(String.format("http://localhost:%d/credential", this.RULE.getLocalPort()))
+                .target(String.format(CREDENTIAL_END_POINT, this.RULE.getLocalPort()))
                 .request()
-                .header("X-Auth-RSA", BASE_64_PUBLIC_KEY_2)
+                .header(X_AUTH_RSA_HEADER, BASE_64_PUBLIC_KEY_2)
                 .post(Entity.json(this.credential2));
         assertThat(response.getStatus()).isEqualTo(Status.CREATED.getStatusCode());
 
         // Now verifying that the new credential was properly stored, including
         // missing the secondary credential.
         final Response getResponse = this.client
-                .target(String.format("http://localhost:%d/credential", this.RULE.getLocalPort()))
+                .target(String.format(CREDENTIAL_END_POINT, this.RULE.getLocalPort()))
                 .request()
-                .header("X-Auth-RSA", BASE_64_PUBLIC_KEY_2)
+                .header(X_AUTH_RSA_HEADER, BASE_64_PUBLIC_KEY_2)
                 .get();
 
         assertThat(getResponse.getStatus()).isEqualTo(Status.OK.getStatusCode());
@@ -218,7 +242,7 @@ public class CredentialStorageApplicationTest {
     public void testPostCredentialMissingHeader()
             throws JsonParseException, JsonMappingException, IOException {
         final Response response = this.client
-                .target(String.format("http://localhost:%d/credential", this.RULE.getLocalPort()))
+                .target(String.format(CREDENTIAL_END_POINT, this.RULE.getLocalPort()))
                 .request()
                 .post(Entity.json(this.credential));
 
@@ -229,9 +253,9 @@ public class CredentialStorageApplicationTest {
     public void testPostCredentialWithInvalidCredential()
             throws JsonParseException, JsonMappingException, IOException {
         final Response response = this.client
-                .target(String.format("http://localhost:%d/credential", this.RULE.getLocalPort()))
+                .target(String.format(CREDENTIAL_END_POINT, this.RULE.getLocalPort()))
                 .request()
-                .header("X-Auth-RSA", BASE_64_PUBLIC_KEY)
+                .header(X_AUTH_RSA_HEADER, BASE_64_PUBLIC_KEY)
                 .post(Entity.json("{\"missing\":\"data\"}"));
 
         assertThat(response.getStatus()).isEqualTo(Status.BAD_REQUEST.getStatusCode());
@@ -241,9 +265,9 @@ public class CredentialStorageApplicationTest {
     public void testPutCredentialWithExistingCredential()
             throws JsonParseException, JsonMappingException, IOException {
         final Response getResponse = this.client
-                .target(String.format("http://localhost:%d/credential", this.RULE.getLocalPort()))
+                .target(String.format(CREDENTIAL_END_POINT, this.RULE.getLocalPort()))
                 .request()
-                .header("X-Auth-RSA", BASE_64_PUBLIC_KEY)
+                .header(X_AUTH_RSA_HEADER, BASE_64_PUBLIC_KEY)
                 .get();
 
         assertThat(getResponse.getStatus()).isEqualTo(Status.OK.getStatusCode());
@@ -255,17 +279,17 @@ public class CredentialStorageApplicationTest {
         final Credential newCredential = Credential.builder()
                 .primary("user").build();
         final Response response = this.client
-                .target(String.format("http://localhost:%d/credential", this.RULE.getLocalPort()))
+                .target(String.format(CREDENTIAL_END_POINT, this.RULE.getLocalPort()))
                 .request()
-                .header("X-Auth-RSA", BASE_64_PUBLIC_KEY)
+                .header(X_AUTH_RSA_HEADER, BASE_64_PUBLIC_KEY)
                 .put(Entity.json(newCredential));
         assertThat(response.getStatus()).isEqualTo(Status.OK.getStatusCode());
 
         // Now verifying that the new credential was properly updated.
         final Response updatedGetResponse = this.client
-                .target(String.format("http://localhost:%d/credential", this.RULE.getLocalPort()))
+                .target(String.format(CREDENTIAL_END_POINT, this.RULE.getLocalPort()))
                 .request()
-                .header("X-Auth-RSA", BASE_64_PUBLIC_KEY)
+                .header(X_AUTH_RSA_HEADER, BASE_64_PUBLIC_KEY)
                 .get();
 
         assertThat(updatedGetResponse.getStatus()).isEqualTo(Status.OK.getStatusCode());
@@ -284,31 +308,17 @@ public class CredentialStorageApplicationTest {
                 .primary("user")
                 .secondary("another password").build();
         final Response response = this.client
-                .target(String.format("http://localhost:%d/credential", this.RULE.getLocalPort()))
+                .target(String.format(CREDENTIAL_END_POINT, this.RULE.getLocalPort()))
                 .request()
                 .put(Entity.json(newCredential));
         assertThat(response.getStatus()).isEqualTo(Status.BAD_REQUEST.getStatusCode());
     }
 
     @Test
-    public void testPutCredentialWithNonExistingCredential()
-            throws JsonParseException, JsonMappingException, IOException {
-        final Credential newCredential = Credential.builder()
-                .primary("user")
-                .secondary("another password").build();
-        final Response response = this.client
-                .target(String.format("http://localhost:%d/credential", this.RULE.getLocalPort()))
-                .request()
-                .header("X-Auth-RSA", "missing")
-                .put(Entity.json(newCredential));
-        assertThat(response.getStatus()).isEqualTo(Status.NOT_FOUND.getStatusCode());
-    }
-
-    @Test
     public void testPutCredentialWithInvalidPayload()
             throws JsonParseException, JsonMappingException, IOException {
         final Response response = this.client
-                .target(String.format("http://localhost:%d/credential", this.RULE.getLocalPort()))
+                .target(String.format(CREDENTIAL_END_POINT, this.RULE.getLocalPort()))
                 .request()
                 .put(Entity.json("{\"wrong\": \"stuff\"}"));
         assertThat(response.getStatus()).isEqualTo(Status.BAD_REQUEST.getStatusCode());
@@ -318,17 +328,17 @@ public class CredentialStorageApplicationTest {
     public void testDeleteCredentialWithExistingCredential()
             throws JsonParseException, JsonMappingException, IOException {
         final Response response = this.client
-                .target(String.format("http://localhost:%d/credential", this.RULE.getLocalPort()))
+                .target(String.format(CREDENTIAL_END_POINT, this.RULE.getLocalPort()))
                 .request()
-                .header("X-Auth-RSA", BASE_64_PUBLIC_KEY)
+                .header(X_AUTH_RSA_HEADER, BASE_64_PUBLIC_KEY)
                 .delete();
         assertThat(response.getStatus()).isEqualTo(Status.OK.getStatusCode());
 
         // Now verifying that the credential was properly deleted.
         final Response updatedGetResponse = this.client
-                .target(String.format("http://localhost:%d/credential", this.RULE.getLocalPort()))
+                .target(String.format(CREDENTIAL_END_POINT, this.RULE.getLocalPort()))
                 .request()
-                .header("X-Auth-RSA", BASE_64_PUBLIC_KEY)
+                .header(X_AUTH_RSA_HEADER, BASE_64_PUBLIC_KEY)
                 .get();
 
         assertThat(updatedGetResponse.getStatus()).isEqualTo(Status.NOT_FOUND.getStatusCode());
@@ -339,7 +349,7 @@ public class CredentialStorageApplicationTest {
             throws JsonParseException, JsonMappingException, IOException {
         // Now verifying that the credential was properly deleted.
         final Response response = this.client
-                .target(String.format("http://localhost:%d/credential", this.RULE.getLocalPort()))
+                .target(String.format(CREDENTIAL_END_POINT, this.RULE.getLocalPort()))
                 .request()
                 .delete();
         assertThat(response.getStatus()).isEqualTo(Status.BAD_REQUEST.getStatusCode());
@@ -350,9 +360,9 @@ public class CredentialStorageApplicationTest {
             throws JsonParseException, JsonMappingException, IOException {
         // Now verifying that the credential was properly deleted.
         final Response response = this.client
-                .target(String.format("http://localhost:%d/credential", this.RULE.getLocalPort()))
+                .target(String.format(CREDENTIAL_END_POINT, this.RULE.getLocalPort()))
                 .request()
-                .header("X-Auth-RSA", "not found")
+                .header(X_AUTH_RSA_HEADER, "not found")
                 .delete();
         assertThat(response.getStatus()).isEqualTo(Status.NOT_FOUND.getStatusCode());
     }

@@ -90,6 +90,6 @@ public class EncryptionUtilTest {
         final SecretKey secretKey = this.encryptionUtil
                 .loadSecretKey(Base64.encodeToString(TEST_DES_SYMETRIC_KEY));
         assertThat(this.encryptionUtil.encrypt(secretKey, "123"))
-                .isEqualTo("s+KpNGC/0McSdf4W2YxBuw==");
+                .hasValue("s+KpNGC/0McSdf4W2YxBuw==");
     }
 }

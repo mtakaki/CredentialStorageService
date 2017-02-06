@@ -26,6 +26,7 @@ import io.dropwizard.testing.junit.ResourceTestRule;
 import jodd.util.Base64;
 
 public class CredentialResourceApiTest {
+    private static final String CREDENTIAL_URI = "/credential";
     private static final byte[] TEST_RSA_PUBLIC_KEY = new byte[] { 48, -126, 2, 34, 48, 13, 6, 9,
             42, -122, 72, -122, -9, 13, 1, 1, 1, 5, 0, 3, -126, 2, 15, 0, 48, -126, 2, 10, 2, -126,
             2, 1, 0, -56, 114, -107, 40, 75, -102, 18, -24, 65, 81, -75, 56, -36, -125, 115, -115,
@@ -81,14 +82,14 @@ public class CredentialResourceApiTest {
             .build();
 
     @BeforeClass
-    public static void setup() {
+    public static void setUp() {
         when(dao.getCredentialByKey(BASE_64_PUBLIC_KEY)).thenReturn(Optional.of(credential));
         when(dao.getCredentialByKey("missing")).thenReturn(Optional.absent());
     }
 
     @Test
     public void getCredential() {
-        assertThat(resources.client().target("/credential").request()
+        assertThat(resources.client().target(CREDENTIAL_URI).request()
                 .header("X-Auth-RSA", BASE_64_PUBLIC_KEY)
                 .get(Credential.class))
                         .isEqualToIgnoringGivenFields(credential, "id", "key");
@@ -97,13 +98,13 @@ public class CredentialResourceApiTest {
     @Test
     public void getCredentialNotFound() {
         assertThat(
-                resources.client().target("/credential").request().header("X-Auth-RSA", "missing")
+                resources.client().target(CREDENTIAL_URI).request().header("X-Auth-RSA", "missing")
                         .get().getStatus()).isEqualTo(Status.NOT_FOUND.getStatusCode());
     }
 
     @Test
     public void getCredentialWithoutHeader() {
-        assertThat(resources.client().target("/credential").request().get().getStatus())
+        assertThat(resources.client().target(CREDENTIAL_URI).request().get().getStatus())
                 .isEqualTo(Status.NOT_FOUND.getStatusCode());
     }
 
@@ -112,7 +113,7 @@ public class CredentialResourceApiTest {
         final Credential credential = Credential.builder()
                 .primary("user").secondary("password").build();
 
-        assertThat(resources.client().target("/credential").request()
+        assertThat(resources.client().target(CREDENTIAL_URI).request()
                 .header("X-Auth-RSA", BASE_64_PUBLIC_KEY)
                 .post(Entity.entity(credential, MediaType.APPLICATION_JSON)).getStatus())
                         .isEqualTo(Status.CREATED.getStatusCode());
