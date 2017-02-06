@@ -106,8 +106,7 @@ public class CredentialStorageApplication extends Application<CredentialStorageC
         environment.jersey().register(petiteContainer.getBean(CredentialResource.class));
 
         // Admin resources.
-        final JerseyEnvironment adminJerseyEnvironment = this.setupAdminEnvironment(configuration,
-                environment);
+        final JerseyEnvironment adminJerseyEnvironment = this.setupAdminEnvironment(environment);
         adminJerseyEnvironment.register(petiteContainer.getBean(AuditResource.class));
     }
 
@@ -145,8 +144,7 @@ public class CredentialStorageApplication extends Application<CredentialStorageC
      *            The application environment.
      * @return The admin environment.
      */
-    private JerseyEnvironment setupAdminEnvironment(final CredentialStorageConfiguration configuration,
-            final Environment environment) {
+    private JerseyEnvironment setupAdminEnvironment(final Environment environment) {
         final DropwizardResourceConfig jerseyConfig = new DropwizardAdminResourceConfig(
                 environment.metrics());
         final JerseyContainerHolder servletContainer = new JerseyContainerHolder(
