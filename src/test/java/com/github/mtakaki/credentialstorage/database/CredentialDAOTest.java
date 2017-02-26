@@ -2,19 +2,34 @@ package com.github.mtakaki.credentialstorage.database;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.github.mtakaki.credentialstorage.database.model.Credential;
 
+import redis.clients.jedis.JedisPool;
+import redis.embedded.RedisServer;
+import redis.embedded.ports.EphemeralPortProvider;
+
 public class CredentialDAOTest {
     private CredentialDAO dao;
-    private HibernateDAOTestUtil testUtil;
+    private RedisServer redisServer;
 
     @Before
     public void setUp() {
-        this.testUtil = new HibernateDAOTestUtil();
-        this.dao = new CredentialDAO(this.testUtil.getSessionFactory());
+        this.redisServer = RedisServer.builder().port(new EphemeralPortProvider().next()).build();
+        this.redisServer.start();
+        this.dao = new CredentialDAO(
+                new JedisPool(
+                        String.format("redis://localhost:%d", this.redisServer.ports().get(0))));
+    }
+
+    @After
+    public void tearDown() {
+        if (this.redisServer.isActive()) {
+            this.redisServer.stop();
+        }
     }
 
     @Test

@@ -64,7 +64,6 @@ public class CredentialResourceApiTest {
     private static CredentialDAO dao = mock(CredentialDAO.class);
 
     private static Credential credential = Credential.builder()
-            .id(3)
             .key(Base64.encodeToString(TEST_RSA_PUBLIC_KEY))
             .symmetricKey(Base64.encodeToString(TEST_DES_SYMETRIC_KEY))
             .primary("test")
@@ -105,7 +104,7 @@ public class CredentialResourceApiTest {
     @Test
     public void getCredentialWithoutHeader() {
         assertThat(resources.client().target(CREDENTIAL_URI).request().get().getStatus())
-                .isEqualTo(Status.NOT_FOUND.getStatusCode());
+                .isEqualTo(Status.BAD_REQUEST.getStatusCode());
     }
 
     @Test

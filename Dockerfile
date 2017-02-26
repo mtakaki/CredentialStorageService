@@ -6,6 +6,10 @@ ENV CONFIG_FOLDER=$CREDENTIAL_STORAGE_FOLDER/config
 ENV CONFIG_FILE=config.yml
 ENV LOG_LEVEL=INFO
 ENV TIME_ZONE=UTC
+ENV MAX_MEMORY=128m
+ENV STARTING_MEMORY=64m
+ENV METASPACE_SIZE=100m
+ENV REDIS_URL=redis://redis:6379
 
 ADD target/bundled-credential-storage-*.tar.gz $CREDENTIAL_STORAGE_FOLDER
 # Moving the config.yml to the config folder, so we can mount later.

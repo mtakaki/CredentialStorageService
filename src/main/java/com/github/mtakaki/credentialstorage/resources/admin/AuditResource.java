@@ -9,9 +9,6 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
 import com.github.mtakaki.credentialstorage.database.CredentialDAO;
-import com.github.mtakaki.credentialstorage.database.model.Credential;
-
-import io.dropwizard.hibernate.UnitOfWork;
 
 import jodd.petite.meta.PetiteBean;
 import lombok.AllArgsConstructor;
@@ -25,8 +22,7 @@ public class AuditResource {
     private final CredentialDAO credentialDAO;
 
     @GET
-    @UnitOfWork
-    public List<Credential> list() {
-        return this.credentialDAO.getAllCredentials();
+    public List<String> listKeys() {
+        return this.credentialDAO.getAllCredentialsKey();
     }
 }

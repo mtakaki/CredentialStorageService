@@ -2,6 +2,7 @@ package com.github.mtakaki.credentialstorage.database.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.joda.time.DateTime;
 import org.junit.Test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -17,15 +18,17 @@ public class CredentialTest {
     @Test
     public void deserializesFromJSON() throws Exception {
         final Credential credential = Credential.builder()
-                .id(10)
                 .key("abc")
                 .symmetricKey("sym")
                 .primary("user")
-                .secondary("password").build();
+                .secondary("password")
+                .updatedAt(DateTime.parse("2017-02-25T20:10:00").toDate())
+                .lastAccess(DateTime.parse("2017-02-25T20:10:00").toDate())
+                .createdAt(DateTime.parse("2017-02-23T10:15:20").toDate())
+                .build();
         assertThat(
                 MAPPER.readValue(FixtureHelpers.fixture("fixtures/credential.json"),
                         Credential.class))
-                                .isEqualToComparingOnlyGivenFields(credential, "symmetricKey",
-                                        "primary", "secondary");
+                                .isEqualToIgnoringGivenFields(credential, "key");
     }
 }

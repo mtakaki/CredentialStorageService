@@ -17,7 +17,9 @@ import org.junit.Test;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
+import com.github.mtakaki.credentialstorage.configuration.RedisConfiguration;
 import com.github.mtakaki.credentialstorage.database.model.Credential;
+import com.github.mtakaki.credentialstorage.managed.JedisManaged;
 
 import io.dropwizard.client.JerseyClientBuilder;
 import io.dropwizard.client.JerseyClientConfiguration;
@@ -26,6 +28,8 @@ import io.dropwizard.testing.junit.DropwizardAppRule;
 import io.dropwizard.util.Duration;
 
 import jodd.util.Base64;
+import redis.embedded.RedisServer;
+import redis.embedded.ports.EphemeralPortProvider;
 
 public class CredentialStorageApplicationTest {
     private static final String X_AUTH_RSA_HEADER = "X-Auth-RSA";
@@ -96,9 +100,41 @@ public class CredentialStorageApplicationTest {
             67, 85, 57, -27, -49, 95, 2, 3, 1, 0, 1 };
     private static final String BASE_64_PUBLIC_KEY_2 = Base64.encodeToString(TEST_RSA_PUBLIC_KEY_2);
 
+    public static class JedisManagedShutdown extends JedisManaged {
+        private final RedisServer redisServer;
+
+        public JedisManagedShutdown(final RedisConfiguration configuration,
+                final RedisServer redisServer) {
+            super(configuration);
+
+            this.redisServer = redisServer;
+        }
+
+        @Override
+        public void stop() throws Exception {
+            super.stop();
+            if (this.redisServer.isActive()) {
+                this.redisServer.stop();
+            }
+        }
+    }
+
+    public static class CredentialStorageApplicationMock extends CredentialStorageApplication {
+        @Override
+        protected JedisManaged buildJedis(final RedisConfiguration configuration) {
+            final RedisServer redisServer = RedisServer.builder()
+                    .port(new EphemeralPortProvider().next()).build();
+            redisServer.start();
+            return new JedisManagedShutdown(
+                    new RedisConfiguration(
+                            String.format("redis://localhost:%d", redisServer.ports().get(0))),
+                    redisServer);
+        }
+    }
+
     @Rule
     public final DropwizardAppRule<CredentialStorageConfiguration> RULE = new DropwizardAppRule<CredentialStorageConfiguration>(
-            CredentialStorageApplication.class,
+            CredentialStorageApplicationMock.class,
             ResourceHelpers.resourceFilePath("config.yml"));
 
     private Client client;
@@ -140,12 +176,31 @@ public class CredentialStorageApplicationTest {
         assertThat(response.getStatus()).isEqualTo(Status.OK.getStatusCode());
         assertThat(response.getMediaType()).isEqualTo(MediaType.APPLICATION_JSON_TYPE);
 
-        final List<Credential> responseCredentialList = IntegrationTestUtil
-                .extractEntityList(response, Credential.class);
-        assertThat(responseCredentialList).hasSize(1);
-        assertThat(responseCredentialList.get(0).getSymmetricKey()).hasSize(684);
-        assertThat(responseCredentialList.get(0).getPrimary()).hasSize(24);
-        assertThat(responseCredentialList.get(0).getSecondary()).hasSize(24);
+        final List<String> responseCredentialKeyList = IntegrationTestUtil
+                .extractEntityList(response, String.class);
+        assertThat(responseCredentialKeyList).hasSize(1).containsExactly(BASE_64_PUBLIC_KEY);
+
+        // Adding another credential just to make sure the list of keys
+        // increases.
+        assertThat(this.client
+                .target(String.format(CREDENTIAL_END_POINT, this.RULE.getLocalPort()))
+                .request()
+                .header(X_AUTH_RSA_HEADER, BASE_64_PUBLIC_KEY_2)
+                .post(Entity.json(this.credential2)).getStatus())
+                        .isEqualTo(Status.CREATED.getStatusCode());
+
+        final Response updatedResponse = this.client
+                .target(String.format(AUDIT_END_POINT, this.RULE.getAdminPort()))
+                .request()
+                .get();
+
+        assertThat(updatedResponse.getStatus()).isEqualTo(Status.OK.getStatusCode());
+        assertThat(updatedResponse.getMediaType()).isEqualTo(MediaType.APPLICATION_JSON_TYPE);
+
+        final List<String> responseUpdatedCredentialKeyList = IntegrationTestUtil
+                .extractEntityList(updatedResponse, String.class);
+        assertThat(responseUpdatedCredentialKeyList).hasSize(2).containsOnly(BASE_64_PUBLIC_KEY,
+                BASE_64_PUBLIC_KEY_2);
     }
 
     @Test
@@ -186,7 +241,7 @@ public class CredentialStorageApplicationTest {
                 .request()
                 .get();
 
-        assertThat(response.getStatus()).isEqualTo(Status.NOT_FOUND.getStatusCode());
+        assertThat(response.getStatus()).isEqualTo(Status.BAD_REQUEST.getStatusCode());
     }
 
     @Test
@@ -196,9 +251,27 @@ public class CredentialStorageApplicationTest {
                 .target(String.format(CREDENTIAL_END_POINT, this.RULE.getLocalPort()))
                 .request()
                 .header(X_AUTH_RSA_HEADER, BASE_64_PUBLIC_KEY)
-                .post(Entity.json(this.credential));
+                .post(Entity.json(this.credential2));
 
         assertThat(response.getStatus()).isEqualTo(Status.CREATED.getStatusCode());
+
+        // Now verifying that the new credential was properly stored, including
+        // missing the secondary credential.
+        final Response getResponse = this.client
+                .target(String.format(CREDENTIAL_END_POINT, this.RULE.getLocalPort()))
+                .request()
+                .header(X_AUTH_RSA_HEADER, BASE_64_PUBLIC_KEY)
+                .get();
+
+        assertThat(getResponse.getStatus()).isEqualTo(Status.OK.getStatusCode());
+        assertThat(getResponse.getMediaType()).isEqualTo(MediaType.APPLICATION_JSON_TYPE);
+
+        final Credential responseCredential = IntegrationTestUtil.extractEntity(getResponse,
+                Credential.class);
+        assertThat(responseCredential.getSymmetricKey()).hasSize(684);
+        assertThat(responseCredential.getPrimary()).hasSize(24);
+        assertThat(responseCredential.getSecondary()).isNull();
+        assertThat(responseCredential.getLastAccess()).isNotNull();
     }
 
     @Test
@@ -236,6 +309,7 @@ public class CredentialStorageApplicationTest {
         assertThat(responseCredential.getSymmetricKey()).hasSize(684);
         assertThat(responseCredential.getPrimary()).hasSize(24);
         assertThat(responseCredential.getSecondary()).isNull();
+        assertThat(responseCredential.getLastAccess()).isNotNull();
     }
 
     @Test

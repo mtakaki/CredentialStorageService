@@ -20,7 +20,6 @@ import org.mockito.runners.MockitoJUnitRunner;
 import com.github.mtakaki.credentialstorage.CredentialStorageConfiguration;
 import com.github.mtakaki.credentialstorage.database.CredentialDAO;
 import com.github.mtakaki.credentialstorage.database.model.Credential;
-import com.github.mtakaki.credentialstorage.resources.CredentialResource;
 import com.google.common.base.Optional;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.net.HttpHeaders;
@@ -63,7 +62,6 @@ public class CredentialResourceTest {
             -105, 75, -84, -117, -24, 28, 84, -74, 4 };
     private static final String BASE_64_PUBLIC_KEY = Base64.encodeToString(TEST_RSA_PUBLIC_KEY);
     private static Credential credential = Credential.builder()
-            .id(3)
             .key(Base64.encodeToString(TEST_RSA_PUBLIC_KEY))
             .symmetricKey(Base64.encodeToString(TEST_DES_SYMETRIC_KEY))
             .primary("test")
@@ -81,6 +79,8 @@ public class CredentialResourceTest {
 
     @Before
     public void setup() {
+        System.out.println(BASE_64_PUBLIC_KEY);
+
         this.resource = new CredentialResource(this.dao,
                 CacheBuilder.from("maximumSize=100, expireAfterAccess=10m").build(),
                 this.configuration);
@@ -130,17 +130,5 @@ public class CredentialResourceTest {
 
         this.expectedException.expect(ExecutionException.class);
         this.resource.storeCredential("invalid", credential);
-    }
-
-    @Test
-    public void postCredentialMissingKey() throws Exception {
-        final Credential credential = Credential.builder()
-                .primary("user").secondary("password").build();
-
-        assertThat(this.resource.storeCredential("", credential).getStatus())
-                .isEqualTo(Status.BAD_REQUEST.getStatusCode());
-
-        assertThat(this.resource.storeCredential(null, credential).getStatus())
-                .isEqualTo(Status.BAD_REQUEST.getStatusCode());
     }
 }
