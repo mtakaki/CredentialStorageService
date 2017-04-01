@@ -34,6 +34,7 @@ import redis.embedded.ports.EphemeralPortProvider;
 public class CredentialStorageApplicationTest {
     private static final String X_AUTH_RSA_HEADER = "X-Auth-RSA";
     private static final String AUDIT_END_POINT = "http://localhost:%d/admin/audit/";
+    private static final String AUDIT_LAST_ACCESSED_END_POINT = "http://localhost:%d/admin/audit/last_accessed";
     private static final String CREDENTIAL_END_POINT = "http://localhost:%d/credential";
 
     private static final byte[] TEST_RSA_PUBLIC_KEY = new byte[] { 48, -126, 2, 34, 48, 13, 6, 9,
@@ -165,6 +166,13 @@ public class CredentialStorageApplicationTest {
                         .isEqualTo(Status.CREATED.getStatusCode());
     }
 
+    /**
+     * Testing the admin API, verifying we can get all public keys.
+     *
+     * @throws JsonParseException
+     * @throws JsonMappingException
+     * @throws IOException
+     */
     @Test
     public void testAuditListCredentials()
             throws JsonParseException, JsonMappingException, IOException {
@@ -199,6 +207,8 @@ public class CredentialStorageApplicationTest {
 
         final List<String> responseUpdatedCredentialKeyList = IntegrationTestUtil
                 .extractEntityList(updatedResponse, String.class);
+        // Now the result should include both keys, the first one and the new
+        // one that was just added.
         assertThat(responseUpdatedCredentialKeyList).hasSize(2).containsOnly(BASE_64_PUBLIC_KEY,
                 BASE_64_PUBLIC_KEY_2);
     }

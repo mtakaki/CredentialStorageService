@@ -5,6 +5,8 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormatter;
@@ -22,6 +24,7 @@ import lombok.AllArgsConstructor;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.Response;
+import redis.clients.jedis.ScanParams;
 import redis.clients.jedis.ScanResult;
 import redis.clients.jedis.Transaction;
 
@@ -34,6 +37,9 @@ import redis.clients.jedis.Transaction;
 @PetiteBean
 @AllArgsConstructor
 public class CredentialDAO {
+    private static final String SET_LAST_UPDATED_KEY = "last_updated";
+    private static final String SET_LAST_ACCESSED_KEY = "last_accessed";
+    private static final String KEY_FORMAT = "credential:%s";
     private static final ObjectMapper MAPPER = new ObjectMapper()
             .setSerializationInclusion(Include.NON_NULL)
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
@@ -56,11 +62,22 @@ public class CredentialDAO {
      */
     public Optional<Credential> getCredentialByKey(final String key) {
         try (Jedis jedis = this.jedisPool.getResource()) {
-            jedis.watch(key);
+            jedis.watch(this.getKey(key));
             final Transaction transaction = jedis.multi();
-            final Response<Map<String, String>> credentialJson = transaction.hgetAll(key);
+            /*
+             * Transaction does the following steps: 1. Retrieve the object from
+             * redis, with the given key. 2. Update the lastAccess field with
+             * current timestamp. 3. Updates the last_accessed zrange that keeps
+             * all credentials ordered for auditing.
+             */
+            final Response<Map<String, String>> credentialJson = transaction
+                    .hgetAll(this.getKey(key));
             // We update lastAccess after the get.
-            transaction.hset(key, "lastAccess", TIMESTAMP_FORMATTER.print(new DateTime()));
+            final DateTime lastAccesTimestamp = new DateTime();
+            transaction.hset(this.getKey(key), "lastAccess",
+                    TIMESTAMP_FORMATTER.print(lastAccesTimestamp));
+            transaction.zadd(SET_LAST_ACCESSED_KEY, lastAccesTimestamp.toDate().getTime() / 1000,
+                    this.getKey(key));
             transaction.exec();
             return this.createAndPopulateBean(credentialJson.get());
         }
@@ -90,11 +107,15 @@ public class CredentialDAO {
             credential.setLastAccess(updatedTimestamp);
 
             final Transaction transaction = jedis.multi();
-            final String credentialKey = credential.getKey();
+            final String credentialKey = this.getKey(credential.getKey());
             transaction.del(credentialKey);
             transaction.hmset(credentialKey,
                     MAPPER.convertValue(credential, new TypeReference<Map<String, String>>() {
                     }));
+            transaction.zadd(SET_LAST_ACCESSED_KEY, updatedTimestamp.getTime() / 1000,
+                    credentialKey);
+            transaction.zadd(SET_LAST_UPDATED_KEY, updatedTimestamp.getTime() / 1000,
+                    credentialKey);
             transaction.exec();
         }
     }
@@ -109,7 +130,7 @@ public class CredentialDAO {
      */
     public boolean deleteByKey(final String key) {
         try (Jedis jedis = this.jedisPool.getResource()) {
-            return jedis.del(key) != 0L;
+            return jedis.del(this.getKey(key)) != 0L;
         }
     }
 
@@ -121,12 +142,31 @@ public class CredentialDAO {
     public List<String> getAllCredentialsKey() {
         try (Jedis jedis = this.jedisPool.getResource()) {
             final List<String> keys = new LinkedList<>();
-            ScanResult<String> result = jedis.scan("0");
+            ScanResult<String> result = jedis.scan("0", new ScanParams().match(this.getKey("*")));
             do {
-                keys.addAll(result.getResult());
+                keys.addAll(result.getResult().parallelStream()
+                        .map(key -> key.replace("credential:", "")).collect(Collectors.toList()));
                 result = jedis.scan(result.getStringCursor());
             } while (!result.getStringCursor().equals("0"));
             return keys;
+        }
+    }
+
+    /**
+     * Converts the given key into the internal key used to store the element in
+     * redis.
+     *
+     * @param key
+     *            The credential public key.
+     * @return The key properly formatted.
+     */
+    private String getKey(final String key) {
+        return String.format(KEY_FORMAT, key);
+    }
+
+    public Set<String> getCredentialKeysNotAccessedSince(final Date timestamp) {
+        try (Jedis jedis = this.jedisPool.getResource()) {
+            return jedis.zrangeByScore(SET_LAST_ACCESSED_KEY, 0, timestamp.getTime() / 1000);
         }
     }
 }
