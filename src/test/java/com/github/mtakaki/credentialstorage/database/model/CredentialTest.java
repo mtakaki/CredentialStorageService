@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.TimeZone;
 
 import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -21,6 +22,7 @@ public class CredentialTest {
     @Before
     public void setUp() {
         TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+        DateTimeZone.setDefault(DateTimeZone.UTC);
     }
 
     @Test
@@ -30,9 +32,9 @@ public class CredentialTest {
                 .symmetricKey("sym")
                 .primary("user")
                 .secondary("password")
-                .updatedAt(DateTime.parse("2017-02-25T20:10:00").toDate())
-                .lastAccess(DateTime.parse("2017-02-25T20:10:00").toDate())
-                .createdAt(DateTime.parse("2017-02-23T10:15:20").toDate())
+                .updatedAt(DateTime.parse("2017-02-26T04:10:00").toDate())
+                .lastAccess(DateTime.parse("2017-02-26T04:10:00").toDate())
+                .createdAt(DateTime.parse("2017-02-23T18:15:20").toDate())
                 .build();
         assertThat(
                 MAPPER.readValue(FixtureHelpers.fixture("fixtures/credential.json"),
