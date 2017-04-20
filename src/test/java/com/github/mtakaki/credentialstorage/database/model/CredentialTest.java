@@ -2,7 +2,10 @@ package com.github.mtakaki.credentialstorage.database.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.TimeZone;
+
 import org.joda.time.DateTime;
+import org.junit.Before;
 import org.junit.Test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -12,8 +15,13 @@ import io.dropwizard.jackson.Jackson;
 import io.dropwizard.testing.FixtureHelpers;
 
 public class CredentialTest {
-    private static final ObjectMapper MAPPER = Jackson.newObjectMapper().setPropertyNamingStrategy(
-            PropertyNamingStrategy.CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES);
+    private static final ObjectMapper MAPPER = Jackson.newObjectMapper()
+            .setPropertyNamingStrategy(PropertyNamingStrategy.SNAKE_CASE);
+
+    @Before
+    public void setUp() {
+        TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+    }
 
     @Test
     public void deserializesFromJSON() throws Exception {
