@@ -39,7 +39,8 @@ import redis.clients.jedis.Transaction;
 public class CredentialDAO {
     private static final String SET_LAST_UPDATED_KEY = "last_updated";
     private static final String SET_LAST_ACCESSED_KEY = "last_accessed";
-    private static final String KEY_FORMAT = "credential:%s";
+    private static final String KEY_PREFIX = "credential:";
+    private static final String KEY_FORMAT = KEY_PREFIX + "%s";
     private static final ObjectMapper MAPPER = new ObjectMapper()
             .setSerializationInclusion(Include.NON_NULL)
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
@@ -145,7 +146,7 @@ public class CredentialDAO {
             ScanResult<String> result = jedis.scan("0", new ScanParams().match(this.getKey("*")));
             do {
                 keys.addAll(result.getResult().parallelStream()
-                        .map(key -> key.replace("credential:", "")).collect(Collectors.toList()));
+                        .map(key -> key.replace(KEY_PREFIX, "")).collect(Collectors.toList()));
                 result = jedis.scan(result.getStringCursor());
             } while (!result.getStringCursor().equals("0"));
             return keys;
@@ -164,9 +165,22 @@ public class CredentialDAO {
         return String.format(KEY_FORMAT, key);
     }
 
-    public Set<String> getCredentialKeysNotAccessedSince(final Date timestamp) {
+    /**
+     * Searches for all credentials that we last accessed between the given
+     * interval. If no credential could be found, it will return an empty set.
+     *
+     * @param fromTimestamp
+     *            The initial interval in UNIX timestamp.
+     * @param toTimestamp
+     *            The end interval in UNIX timestamp.
+     * @return The credential keys that were accessed in the specified time
+     *         period.
+     */
+    public Set<String> getCredentialKeysAccessedSince(final long fromTimestamp,
+            final long toTimestamp) {
         try (Jedis jedis = this.jedisPool.getResource()) {
-            return jedis.zrangeByScore(SET_LAST_ACCESSED_KEY, 0, timestamp.getTime() / 1000);
+            return jedis.zrangeByScore(SET_LAST_ACCESSED_KEY, fromTimestamp, toTimestamp)
+                    .stream().map(key -> key.replace(KEY_PREFIX, "")).collect(Collectors.toSet());
         }
     }
 }

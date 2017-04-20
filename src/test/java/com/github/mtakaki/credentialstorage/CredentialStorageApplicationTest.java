@@ -3,6 +3,7 @@ package com.github.mtakaki.credentialstorage;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
+import java.util.Date;
 import java.util.List;
 
 import javax.ws.rs.client.Client;
@@ -11,6 +12,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
+import org.joda.time.DateTime;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -211,6 +213,67 @@ public class CredentialStorageApplicationTest {
         // one that was just added.
         assertThat(responseUpdatedCredentialKeyList).hasSize(2).containsOnly(BASE_64_PUBLIC_KEY,
                 BASE_64_PUBLIC_KEY_2);
+    }
+
+    @Test
+    public void testAuditGetLastAccessedBy()
+            throws JsonParseException, JsonMappingException, IOException {
+        final Response response = this.client
+                .target(String.format(AUDIT_LAST_ACCESSED_END_POINT, this.RULE.getAdminPort()))
+                .queryParam("timestamp", new Date().getTime() / 1000)
+                .request()
+                .get();
+
+        assertThat(response.getStatus()).isEqualTo(Status.OK.getStatusCode());
+        assertThat(response.getMediaType()).isEqualTo(MediaType.APPLICATION_JSON_TYPE);
+
+        final List<String> responseCredentialKeyList = IntegrationTestUtil
+                .extractEntityList(response, String.class);
+        assertThat(responseCredentialKeyList).hasSize(1).containsExactly(BASE_64_PUBLIC_KEY);
+
+        // Adding another credential just to make sure the list of keys
+        // increases.
+        assertThat(this.client
+                .target(String.format(CREDENTIAL_END_POINT, this.RULE.getLocalPort()))
+                .request()
+                .header(X_AUTH_RSA_HEADER, BASE_64_PUBLIC_KEY_2)
+                .post(Entity.json(this.credential2)).getStatus())
+                        .isEqualTo(Status.CREATED.getStatusCode());
+
+        final Response updatedResponse = this.client
+                .target(String.format(AUDIT_LAST_ACCESSED_END_POINT, this.RULE.getAdminPort()))
+                .queryParam("timestamp", new Date().getTime() / 1000)
+                .request()
+                .get();
+
+        assertThat(updatedResponse.getStatus()).isEqualTo(Status.OK.getStatusCode());
+        assertThat(updatedResponse.getMediaType()).isEqualTo(MediaType.APPLICATION_JSON_TYPE);
+
+        final List<String> responseUpdatedCredentialKeyList = IntegrationTestUtil
+                .extractEntityList(updatedResponse, String.class);
+        // Now the result should include both keys, the first one and the new
+        // one that was just added.
+        assertThat(responseUpdatedCredentialKeyList).hasSize(2).containsOnly(BASE_64_PUBLIC_KEY,
+                BASE_64_PUBLIC_KEY_2);
+    }
+
+    @Test
+    public void testAuditGetLastAccessedByNotFound()
+            throws JsonParseException, JsonMappingException, IOException {
+        // We look for credentials that have been accessed 10 minutes ago, which
+        // should be none.
+        final Response response = this.client
+                .target(String.format(AUDIT_LAST_ACCESSED_END_POINT, this.RULE.getAdminPort()))
+                .queryParam("timestamp", new DateTime().minusMinutes(10).toDate().getTime() / 1000)
+                .request()
+                .get();
+
+        assertThat(response.getStatus()).isEqualTo(Status.OK.getStatusCode());
+        assertThat(response.getMediaType()).isEqualTo(MediaType.APPLICATION_JSON_TYPE);
+
+        final List<String> responseCredentialKeyList = IntegrationTestUtil
+                .extractEntityList(response, String.class);
+        assertThat(responseCredentialKeyList).hasSize(1).containsExactly(BASE_64_PUBLIC_KEY);
     }
 
     @Test

@@ -20,12 +20,12 @@ swagger:
   resourcePackage: com.github.mtakaki.credentialstorage.resources
 
 logging:
-  level: ${env.LOG_LEVEL!'INFO'}
+  level: ${LOG_LEVEL:-'INFO'}
   appenders:
     - type: console
-      threshold: ${env.LOG_LEVEL!'INFO'}
+      threshold: ${LOG_LEVEL:-'INFO'}
       target: stdout
-      timeZone: ${env.TIME_ZONE!'UTC'}
+      timeZone: ${TIME_ZONE:-'UTC'}
 
 # Jodd Petite dependency injection settings.
 petite:
@@ -34,4 +34,4 @@ petite:
   useMetrics: true
 
 redis:
-  url: ${env.REDIS_URL!'redis://localhost:6379'}
+  url: ${REDIS_URL:-'redis://localhost:6379'}

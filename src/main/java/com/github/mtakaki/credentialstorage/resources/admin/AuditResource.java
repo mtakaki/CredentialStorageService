@@ -1,6 +1,5 @@
 package com.github.mtakaki.credentialstorage.resources.admin;
 
-import java.util.Date;
 import java.util.List;
 import java.util.Set;
 
@@ -32,6 +31,7 @@ public class AuditResource {
     @GET
     @Path("/last_accessed")
     public Set<String> getLastAccessedBy(@QueryParam("timestamp") final long unixTimestamp) {
-        return this.credentialDAO.getCredentialKeysNotAccessedSince(new Date(unixTimestamp * 1000));
+        return this.credentialDAO.getCredentialKeysAccessedSince(unixTimestamp,
+                System.currentTimeMillis() / 1000L);
     }
 }
