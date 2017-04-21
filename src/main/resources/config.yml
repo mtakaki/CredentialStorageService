@@ -4,43 +4,6 @@ symmetricKeySize: 192
 # Cache used to relieve the pressure on the database.
 publicKeysCache: maximumSize=100, expireAfterAccess=10m
 
-database:
-  # the name of your JDBC driver
-  driverClass: org.hsqldb.jdbcDriver
-
-  # the username
-  user: sa
-
-  # the password
-  password: ""
-
-  # the JDBC URL
-  url: jdbc:hsqldb:mem:testdb
-
-  # any properties specific to your JDBC driver:
-  properties:
-    charSet: UTF-8
-    hibernate.dialect: org.hibernate.dialect.HSQLDialect
-    hibernate.show_sql: true
-    hibernate.hbm2ddl.auto: create
-
-  # the maximum amount of time to wait on an empty pool before throwing an exception
-  maxWaitForConnection: 1s
-
-  # the SQL query to run when validating a connection's liveness
-  validationQuery: SELECT 1 FROM INFORMATION_SCHEMA.SYSTEM_USERS
-
-  # the minimum number of connections to keep open
-  minSize: 8
-
-  # the maximum number of connections to keep open
-  maxSize: 32
-
-  # whether or not idle connections should be validated
-  checkConnectionWhileIdle: true
-
-  checkConnectionOnBorrow: true
-
 server:
   applicationConnectors:
     - type: http
@@ -48,6 +11,8 @@ server:
   adminConnectors:
     - type: http
       port: 8081
+  requestLog:
+    appenders: []
 
 circuitBreaker:
   threshold: 0.5 # failures per second
@@ -57,15 +22,20 @@ swagger:
   resourcePackage: com.github.mtakaki.credentialstorage.resources
 
 logging:
-  level: ${env.LOG_LEVEL!'INFO'}
+  level: ${LOG_LEVEL:-'INFO'}
   appenders:
     - type: console
-      threshold: ${env.LOG_LEVEL!'INFO'}
+      threshold: ${LOG_LEVEL:-'INFO'}
       target: stdout
-      timeZone: ${env.TIME_ZONE!'UTC'}
+      timeZone: ${TIME_ZONE:-'UTC'}
 
 # Jodd Petite dependency injection settings.
 petite:
   useFullTypeNames: true
   automagicConfigurator: true
   useMetrics: true
+
+redis:
+  url: ${REDIS_URL:-'redis://localhost:6379'}
+  poolConfig:
+    maxTotal: 10

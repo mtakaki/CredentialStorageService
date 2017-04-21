@@ -1,17 +1,16 @@
 package com.github.mtakaki.credentialstorage.resources.admin;
 
 import java.util.List;
+import java.util.Set;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
 import com.github.mtakaki.credentialstorage.database.CredentialDAO;
-import com.github.mtakaki.credentialstorage.database.model.Credential;
-
-import io.dropwizard.hibernate.UnitOfWork;
 
 import jodd.petite.meta.PetiteBean;
 import lombok.AllArgsConstructor;
@@ -25,8 +24,14 @@ public class AuditResource {
     private final CredentialDAO credentialDAO;
 
     @GET
-    @UnitOfWork
-    public List<Credential> list() {
-        return this.credentialDAO.getAllCredentials();
+    public List<String> listKeys() {
+        return this.credentialDAO.getAllCredentialsKey();
+    }
+
+    @GET
+    @Path("/last_accessed")
+    public Set<String> getLastAccessedBy(@QueryParam("timestamp") final long unixTimestamp) {
+        return this.credentialDAO.getCredentialKeysAccessedSince(unixTimestamp,
+                System.currentTimeMillis() / 1000L);
     }
 }

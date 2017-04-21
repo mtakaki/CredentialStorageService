@@ -13,7 +13,7 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 
 public class IntegrationTestUtil {
     private static final ObjectMapper MAPPER = new ObjectMapper().setPropertyNamingStrategy(
-            PropertyNamingStrategy.CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES);
+            PropertyNamingStrategy.SNAKE_CASE);
 
     public static <T> T extractEntity(final Response response, final Class<T> clazz)
             throws IOException, JsonParseException, JsonMappingException {

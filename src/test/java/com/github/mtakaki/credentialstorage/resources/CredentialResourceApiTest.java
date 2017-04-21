@@ -7,6 +7,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
+
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response.Status;
@@ -64,7 +66,6 @@ public class CredentialResourceApiTest {
     private static CredentialDAO dao = mock(CredentialDAO.class);
 
     private static Credential credential = Credential.builder()
-            .id(3)
             .key(Base64.encodeToString(TEST_RSA_PUBLIC_KEY))
             .symmetricKey(Base64.encodeToString(TEST_DES_SYMETRIC_KEY))
             .primary("test")
@@ -82,7 +83,7 @@ public class CredentialResourceApiTest {
             .build();
 
     @BeforeClass
-    public static void setUp() {
+    public static void setUp() throws IOException {
         when(dao.getCredentialByKey(BASE_64_PUBLIC_KEY)).thenReturn(Optional.of(credential));
         when(dao.getCredentialByKey("missing")).thenReturn(Optional.absent());
     }
@@ -105,11 +106,11 @@ public class CredentialResourceApiTest {
     @Test
     public void getCredentialWithoutHeader() {
         assertThat(resources.client().target(CREDENTIAL_URI).request().get().getStatus())
-                .isEqualTo(Status.NOT_FOUND.getStatusCode());
+                .isEqualTo(Status.BAD_REQUEST.getStatusCode());
     }
 
     @Test
-    public void postCredential() {
+    public void postCredential() throws IOException {
         final Credential credential = Credential.builder()
                 .primary("user").secondary("password").build();
 

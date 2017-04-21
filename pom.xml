@@ -1,4 +1,5 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.github.mtakaki</groupId>
@@ -29,7 +30,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <dropwizard.version>0.9.2</dropwizard.version>
+        <dropwizard.version>1.1.0</dropwizard.version>
         <!-- Flaky test setting, re-run more 2 times in case of a failure -->
         <surefire.rerunFailingTestsCount>2</surefire.rerunFailingTestsCount>
     </properties>
@@ -53,18 +54,17 @@
     </distributionManagement>
 
     <dependencies>
+        <dependency>
+            <groupId>org.glassfish.jersey.bundles</groupId>
+            <artifactId>jaxrs-ri</artifactId>
+            <version>2.25</version>
+        </dependency>
+
         <!-- Dropwizard packages -->
         <dependency>
             <groupId>io.dropwizard</groupId>
             <artifactId>dropwizard-core</artifactId>
             <version>${dropwizard.version}</version>
-        </dependency>
-
-        <!-- Using HikariCP to have better reliability with database -->
-        <dependency>
-            <groupId>com.github.mtakaki</groupId>
-            <artifactId>dropwizard-hikaricp</artifactId>
-            <version>0.0.1</version>
         </dependency>
 
         <dependency>
@@ -81,47 +81,65 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- Redis is our data storage -->
+        <dependency>
+            <groupId>redis.clients</groupId>
+            <artifactId>jedis</artifactId>
+            <version>2.9.0</version>
+        </dependency>
+
         <!-- Swagger for documenting the API -->
         <dependency>
             <groupId>com.smoketurner</groupId>
             <artifactId>dropwizard-swagger</artifactId>
-            <version>0.9.2-1</version>
+            <version>1.1.0-1</version>
         </dependency>
-
-        <!-- Support injecting environment variables into configuration -->
+        
+        <!-- Allow admin resources -->
         <dependency>
-            <groupId>de.thomaskrille</groupId>
-            <artifactId>dropwizard-template-config</artifactId>
-            <version>1.2.0</version>
+            <groupId>com.github.mtakaki</groupId>
+            <artifactId>dropwizard-admin-resource</artifactId>
+            <version>1.1.0</version>
         </dependency>
 
         <!-- Circuit breaker to avoid issues escalate -->
         <dependency>
             <groupId>com.github.mtakaki</groupId>
             <artifactId>dropwizard-circuitbreaker</artifactId>
-            <version>0.0.4</version>
+            <version>1.0.0</version>
         </dependency>
 
         <!-- Dependency injection -->
         <dependency>
             <groupId>com.github.mtakaki</groupId>
             <artifactId>dropwizard-petite</artifactId>
-            <version>0.0.1</version>
+            <version>1.0.0</version>
         </dependency>
 
         <!-- Avoids boilerplate code -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>1.16.6</version>
+            <version>1.16.16</version>
             <scope>provided</scope>
         </dependency>
 
-        <!-- In memory database -->
         <dependency>
-            <groupId>org.hsqldb</groupId>
-            <artifactId>hsqldb</artifactId>
-            <version>2.3.3</version>
+            <groupId>commons-beanutils</groupId>
+            <artifactId>commons-beanutils</artifactId>
+            <version>1.9.3</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>commons-logging</groupId>
+                    <artifactId>commons-logging</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>21.0</version>
         </dependency>
 
         <!-- Pushing logs to logentries service -->
@@ -136,15 +154,23 @@
             <groupId>org.coursera</groupId>
             <artifactId>dropwizard-metrics-datadog</artifactId>
             <version>1.1.2</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.postgresql</groupId>
-            <artifactId>postgresql</artifactId>
-            <version>9.4.1208</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>commons-logging</groupId>
+                    <artifactId>commons-logging</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <!-- Test dependencies -->
+        <!-- In-memory redis for integration tests -->
+        <dependency>
+            <groupId>com.github.kstyrc</groupId>
+            <artifactId>embedded-redis</artifactId>
+            <version>0.6</version>
+            <scope>test</scope>
+        </dependency>
+
         <!-- jUnit for unit testing -->
         <dependency>
             <groupId>junit</groupId>
@@ -163,7 +189,7 @@
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
-            <version>3.2.0</version>
+            <version>3.6.2</version>
             <scope>test</scope>
         </dependency>
         <!-- Container for testing resources -->
@@ -186,16 +212,6 @@
     </dependencies>
 
     <build>
-        <pluginManagement>
-            <plugins>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-surefire-plugin</artifactId>
-                    <version>2.18.1</version>
-                </plugin>
-            </plugins>
-        </pluginManagement>
-
         <plugins>
             <!-- Setting up the targeted Java version. -->
             <plugin>
@@ -236,8 +252,10 @@
                         </goals>
                         <configuration>
                             <transformers>
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                <transformer
+                                    implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
+                                <transformer
+                                    implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                                     <mainClass>com.github.mtakaki.credentialstorage.CredentialStorageApplication</mainClass>
                                 </transformer>
                             </transformers>

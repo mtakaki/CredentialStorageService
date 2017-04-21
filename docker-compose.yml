@@ -1,0 +1,11 @@
+version: '2'
+services:
+  redis:
+    image: redis
+  service:
+    build: .
+    ports:
+      - '8080:8080'
+      - '8081:8081'
+    depends_on:
+      - redis

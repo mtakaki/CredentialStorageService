@@ -2,23 +2,40 @@ package com.github.mtakaki.credentialstorage.database;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.io.IOException;
+
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.github.mtakaki.credentialstorage.database.model.Credential;
 
+import redis.clients.jedis.JedisPool;
+import redis.embedded.RedisServer;
+import redis.embedded.ports.EphemeralPortProvider;
+
 public class CredentialDAOTest {
     private CredentialDAO dao;
-    private HibernateDAOTestUtil testUtil;
+    private RedisServer redisServer;
 
     @Before
     public void setUp() {
-        this.testUtil = new HibernateDAOTestUtil();
-        this.dao = new CredentialDAO(this.testUtil.getSessionFactory());
+        this.redisServer = RedisServer.builder().port(new EphemeralPortProvider().next()).build();
+        this.redisServer.start();
+        this.dao = new CredentialDAO(
+                new JedisPool(
+                        String.format("redis://localhost:%d", this.redisServer.ports().get(0))));
+    }
+
+    @After
+    public void tearDown() {
+        if (this.redisServer.isActive()) {
+            this.redisServer.stop();
+        }
     }
 
     @Test
-    public void testGetCredentialByKey() {
+    public void testGetCredentialByKey() throws IOException {
         final Credential credential = this.createCredentialAndSave();
 
         assertThat(this.dao.getCredentialByKey(credential.getKey()).get())
@@ -26,12 +43,12 @@ public class CredentialDAOTest {
     }
 
     @Test
-    public void testGetCredentialByKeyNotFound() {
+    public void testGetCredentialByKeyNotFound() throws IOException {
         assertThat(this.dao.getCredentialByKey("missing").isPresent()).isFalse();
     }
 
     @Test
-    public void testSave() {
+    public void testSave() throws IOException {
         final Credential credential = this.createCredentialAndSave();
 
         assertThat(this.dao.getCredentialByKey(credential.getKey()).get())
@@ -39,7 +56,7 @@ public class CredentialDAOTest {
     }
 
     @Test
-    public void testDeleteByKey() {
+    public void testDeleteByKey() throws IOException {
         final Credential credential = this.createCredentialAndSave();
 
         assertThat(this.dao.getCredentialByKey(credential.getKey()).get())
@@ -53,7 +70,7 @@ public class CredentialDAOTest {
         assertThat(this.dao.deleteByKey("a")).isFalse();
     }
 
-    private Credential createCredentialAndSave() {
+    private Credential createCredentialAndSave() throws IOException {
         final Credential credential = Credential.builder()
                 .key("a")
                 .primary("me@abc.com")

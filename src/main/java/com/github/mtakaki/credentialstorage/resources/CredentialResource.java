@@ -1,5 +1,6 @@
 package com.github.mtakaki.credentialstorage.resources;
 
+import java.io.IOException;
 import java.net.URI;
 import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.ExecutionException;
@@ -18,19 +19,20 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
-import org.apache.commons.lang3.StringUtils;
+import org.hibernate.validator.constraints.NotEmpty;
 
 import com.codahale.metrics.annotation.Timed;
+import com.fasterxml.jackson.annotation.JsonView;
 import com.github.mtakaki.credentialstorage.CredentialStorageConfiguration;
 import com.github.mtakaki.credentialstorage.database.CredentialDAO;
 import com.github.mtakaki.credentialstorage.database.model.Credential;
+import com.github.mtakaki.credentialstorage.database.model.view.UserView;
 import com.github.mtakaki.credentialstorage.encryption.EncryptionUtil;
 import com.github.mtakaki.credentialstorage.encryption.InitializationException;
 import com.github.mtakaki.dropwizard.circuitbreaker.jersey.CircuitBreaker;
 import com.google.common.base.Optional;
 import com.google.common.cache.Cache;
 
-import io.dropwizard.hibernate.UnitOfWork;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 
@@ -63,13 +65,10 @@ public class CredentialResource {
                 + "The symetrical key should be used to decrypt the credential pair.")
     @Timed
     @CircuitBreaker
-    @UnitOfWork
+    @JsonView(UserView.class)
     public Optional<Credential> getByKey(
-            @HeaderParam(PUBLIC_KEY_HEADER) final String userPublicKey) {
-        if (StringUtils.isBlank(userPublicKey)) {
-            return Optional.absent();
-        }
-
+            @HeaderParam(PUBLIC_KEY_HEADER) @NotEmpty final String userPublicKey)
+            throws IOException {
         return this.credentialDAO.getCredentialByKey(userPublicKey);
     }
 
@@ -82,18 +81,17 @@ public class CredentialResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Timed
     @CircuitBreaker
-    @UnitOfWork
-    public Response storeCredential(@HeaderParam(PUBLIC_KEY_HEADER) final String userPublicKey,
+    public Response storeCredential(
+            @HeaderParam(PUBLIC_KEY_HEADER) @NotEmpty final String userPublicKey,
             @Valid final Credential credential)
-            throws ExecutionException, NoSuchAlgorithmException, InitializationException {
-        if (StringUtils.isBlank(userPublicKey)) {
-            return Response.status(Status.BAD_REQUEST).build();
-        }
+            throws ExecutionException, NoSuchAlgorithmException, InitializationException,
+            IOException {
+        // TODO Create token and client signs it with the private key. The
+        // server must verify the signature is valid, using client's public key.
 
         final Optional<Credential> savedCredentialOptional = this.credentialDAO
                 .getCredentialByKey(userPublicKey);
-        this.fillUpEncryptAndSaveCredential(userPublicKey,
-                savedCredentialOptional.isPresent() ? savedCredentialOptional.get() : credential,
+        this.fillUpEncryptAndSaveCredential(userPublicKey, savedCredentialOptional.or(credential),
                 credential);
 
         return Response.created(URI.create(CREDENTIAL_PATH + userPublicKey)).build();
@@ -106,14 +104,11 @@ public class CredentialResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Timed
     @CircuitBreaker
-    @UnitOfWork
-    public Response updateCredential(@HeaderParam(PUBLIC_KEY_HEADER) final String userPublicKey,
+    public Response updateCredential(
+            @HeaderParam(PUBLIC_KEY_HEADER) @NotEmpty final String userPublicKey,
             @Valid final Credential credential)
-            throws ExecutionException, InitializationException, NoSuchAlgorithmException {
-        if (StringUtils.isBlank(userPublicKey)) {
-            return Response.status(Status.BAD_REQUEST).build();
-        }
-
+            throws ExecutionException, InitializationException, NoSuchAlgorithmException,
+            IOException {
         // As this is an update, we need to query and verify the credentials
         // exist in the database.
         final Optional<Credential> savedCredentialOptional = this.credentialDAO
@@ -152,12 +147,20 @@ public class CredentialResource {
      * @throws ExecutionException
      *             Thrown if we fail to create the {@link EncryptionUtil} from
      *             within the cache.
+     * @throws IOException
+     *             Thrown if the CredentialDAO fails to close the transaction.
      */
     private void fillUpEncryptAndSaveCredential(final String userPublicKey,
             final Credential credential, final Credential incomingCredential)
-            throws InitializationException, ExecutionException, NoSuchAlgorithmException {
+            throws InitializationException, ExecutionException, NoSuchAlgorithmException,
+            IOException {
         final EncryptionUtil cachedEncryptionUtil = this.getEncryptionUtilFromCache(userPublicKey);
         final SecretKey symetricKey = cachedEncryptionUtil.generateSymmetricKey();
+
+        // Setting the values from incomingCredential into credential to ensure
+        // we update the entry, when a field is removed.
+        credential.setPrimary(incomingCredential.getPrimary());
+        credential.setSecondary(incomingCredential.getSecondary());
 
         // The asymmetric key is stored as it is. At this point there is no
         // security threat to store it like this.
@@ -195,12 +198,8 @@ public class CredentialResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Timed
     @CircuitBreaker
-    @UnitOfWork
-    public Response deleteCredential(@HeaderParam(PUBLIC_KEY_HEADER) final String userPublicKey) {
-        if (StringUtils.isBlank(userPublicKey)) {
-            return Response.status(Status.BAD_REQUEST).build();
-        }
-
+    public Response deleteCredential(
+            @HeaderParam(PUBLIC_KEY_HEADER) @NotEmpty final String userPublicKey) {
         if (this.credentialDAO.deleteByKey(userPublicKey)) {
             return Response.ok().build();
         } else {
