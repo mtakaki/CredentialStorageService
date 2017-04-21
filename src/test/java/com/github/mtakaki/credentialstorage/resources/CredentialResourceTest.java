@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 
 import javax.ws.rs.core.Response;
@@ -78,7 +79,7 @@ public class CredentialResourceTest {
     public ExpectedException expectedException = ExpectedException.none();
 
     @Before
-    public void setup() {
+    public void setUp() throws IOException {
         System.out.println(BASE_64_PUBLIC_KEY);
 
         this.resource = new CredentialResource(this.dao,
@@ -90,7 +91,7 @@ public class CredentialResourceTest {
     }
 
     @Test
-    public void getCredential() {
+    public void getCredential() throws IOException {
         final Optional<Credential> resultCredential = this.resource.getByKey(BASE_64_PUBLIC_KEY);
 
         assertThat(resultCredential.isPresent()).isTrue();
@@ -98,14 +99,14 @@ public class CredentialResourceTest {
     }
 
     @Test
-    public void getCredentialNotFound() {
+    public void getCredentialNotFound() throws IOException {
         final Optional<Credential> resultCredential = this.resource.getByKey("123");
 
         assertThat(resultCredential.isPresent()).isFalse();
     }
 
     @Test
-    public void getCredentialWithoutHeader() {
+    public void getCredentialWithoutHeader() throws IOException {
         final Optional<Credential> resultCredential = this.resource.getByKey(null);
 
         assertThat(resultCredential.isPresent()).isFalse();

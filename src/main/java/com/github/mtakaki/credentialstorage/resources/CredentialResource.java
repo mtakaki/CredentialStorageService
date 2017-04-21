@@ -1,5 +1,6 @@
 package com.github.mtakaki.credentialstorage.resources;
 
+import java.io.IOException;
 import java.net.URI;
 import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.ExecutionException;
@@ -66,7 +67,8 @@ public class CredentialResource {
     @CircuitBreaker
     @JsonView(UserView.class)
     public Optional<Credential> getByKey(
-            @HeaderParam(PUBLIC_KEY_HEADER) @NotEmpty final String userPublicKey) {
+            @HeaderParam(PUBLIC_KEY_HEADER) @NotEmpty final String userPublicKey)
+            throws IOException {
         return this.credentialDAO.getCredentialByKey(userPublicKey);
     }
 
@@ -82,7 +84,8 @@ public class CredentialResource {
     public Response storeCredential(
             @HeaderParam(PUBLIC_KEY_HEADER) @NotEmpty final String userPublicKey,
             @Valid final Credential credential)
-            throws ExecutionException, NoSuchAlgorithmException, InitializationException {
+            throws ExecutionException, NoSuchAlgorithmException, InitializationException,
+            IOException {
         // TODO Create token and client signs it with the private key. The
         // server must verify the signature is valid, using client's public key.
 
@@ -104,7 +107,8 @@ public class CredentialResource {
     public Response updateCredential(
             @HeaderParam(PUBLIC_KEY_HEADER) @NotEmpty final String userPublicKey,
             @Valid final Credential credential)
-            throws ExecutionException, InitializationException, NoSuchAlgorithmException {
+            throws ExecutionException, InitializationException, NoSuchAlgorithmException,
+            IOException {
         // As this is an update, we need to query and verify the credentials
         // exist in the database.
         final Optional<Credential> savedCredentialOptional = this.credentialDAO
@@ -143,10 +147,13 @@ public class CredentialResource {
      * @throws ExecutionException
      *             Thrown if we fail to create the {@link EncryptionUtil} from
      *             within the cache.
+     * @throws IOException
+     *             Thrown if the CredentialDAO fails to close the transaction.
      */
     private void fillUpEncryptAndSaveCredential(final String userPublicKey,
             final Credential credential, final Credential incomingCredential)
-            throws InitializationException, ExecutionException, NoSuchAlgorithmException {
+            throws InitializationException, ExecutionException, NoSuchAlgorithmException,
+            IOException {
         final EncryptionUtil cachedEncryptionUtil = this.getEncryptionUtilFromCache(userPublicKey);
         final SecretKey symetricKey = cachedEncryptionUtil.generateSymmetricKey();
 

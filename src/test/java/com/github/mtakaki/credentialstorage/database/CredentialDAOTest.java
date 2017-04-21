@@ -2,6 +2,8 @@ package com.github.mtakaki.credentialstorage.database;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.io.IOException;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -33,7 +35,7 @@ public class CredentialDAOTest {
     }
 
     @Test
-    public void testGetCredentialByKey() {
+    public void testGetCredentialByKey() throws IOException {
         final Credential credential = this.createCredentialAndSave();
 
         assertThat(this.dao.getCredentialByKey(credential.getKey()).get())
@@ -41,12 +43,12 @@ public class CredentialDAOTest {
     }
 
     @Test
-    public void testGetCredentialByKeyNotFound() {
+    public void testGetCredentialByKeyNotFound() throws IOException {
         assertThat(this.dao.getCredentialByKey("missing").isPresent()).isFalse();
     }
 
     @Test
-    public void testSave() {
+    public void testSave() throws IOException {
         final Credential credential = this.createCredentialAndSave();
 
         assertThat(this.dao.getCredentialByKey(credential.getKey()).get())
@@ -54,7 +56,7 @@ public class CredentialDAOTest {
     }
 
     @Test
-    public void testDeleteByKey() {
+    public void testDeleteByKey() throws IOException {
         final Credential credential = this.createCredentialAndSave();
 
         assertThat(this.dao.getCredentialByKey(credential.getKey()).get())
@@ -68,7 +70,7 @@ public class CredentialDAOTest {
         assertThat(this.dao.deleteByKey("a")).isFalse();
     }
 
-    private Credential createCredentialAndSave() {
+    private Credential createCredentialAndSave() throws IOException {
         final Credential credential = Credential.builder()
                 .key("a")
                 .primary("me@abc.com")

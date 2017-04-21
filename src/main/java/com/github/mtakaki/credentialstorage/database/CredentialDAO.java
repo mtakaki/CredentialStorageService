@@ -1,5 +1,6 @@
 package com.github.mtakaki.credentialstorage.database;
 
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.LinkedList;
@@ -23,10 +24,10 @@ import jodd.petite.meta.PetiteBean;
 import lombok.AllArgsConstructor;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.Pipeline;
 import redis.clients.jedis.Response;
 import redis.clients.jedis.ScanParams;
 import redis.clients.jedis.ScanResult;
-import redis.clients.jedis.Transaction;
 
 /**
  * Database Access Object that handles all credential operations.
@@ -60,27 +61,31 @@ public class CredentialDAO {
      *            Key used to store the credentials.
      * @return The credential stored under the given key or
      *         {@code Optional.absent()} if it's missing.
+     * @throws IOException
+     *             Thrown if the pipeline fails to be closed.
      */
-    public Optional<Credential> getCredentialByKey(final String key) {
+    public Optional<Credential> getCredentialByKey(final String key) throws IOException {
         try (Jedis jedis = this.jedisPool.getResource()) {
-            jedis.watch(this.getKey(key));
-            final Transaction transaction = jedis.multi();
-            /*
-             * Transaction does the following steps: 1. Retrieve the object from
-             * redis, with the given key. 2. Update the lastAccess field with
-             * current timestamp. 3. Updates the last_accessed zrange that keeps
-             * all credentials ordered for auditing.
-             */
-            final Response<Map<String, String>> credentialJson = transaction
-                    .hgetAll(this.getKey(key));
-            // We update lastAccess after the get.
-            final DateTime lastAccesTimestamp = new DateTime();
-            transaction.hset(this.getKey(key), "lastAccess",
-                    TIMESTAMP_FORMATTER.print(lastAccesTimestamp));
-            transaction.zadd(SET_LAST_ACCESSED_KEY, lastAccesTimestamp.toDate().getTime() / 1000,
-                    this.getKey(key));
-            transaction.exec();
-            return this.createAndPopulateBean(credentialJson.get());
+            try (final Pipeline pipeline = jedis.pipelined()) {
+                pipeline.watch(this.getKey(key));
+                /*
+                 * Transaction does the following steps: 1. Retrieve the object
+                 * from redis, with the given key. 2. Update the lastAccess
+                 * field with current timestamp. 3. Updates the last_accessed
+                 * zrange that keeps all credentials ordered for auditing.
+                 */
+                final Response<Map<String, String>> credentialJson = pipeline
+                        .hgetAll(this.getKey(key));
+                // We update lastAccess after the get.
+                final DateTime lastAccesTimestamp = new DateTime();
+                pipeline.hset(this.getKey(key), "lastAccess",
+                        TIMESTAMP_FORMATTER.print(lastAccesTimestamp));
+                pipeline.zadd(SET_LAST_ACCESSED_KEY,
+                        lastAccesTimestamp.toDate().getTime() / 1000,
+                        this.getKey(key));
+                pipeline.sync();
+                return this.createAndPopulateBean(credentialJson.get());
+            }
         }
     }
 
@@ -97,8 +102,10 @@ public class CredentialDAO {
      *
      * @param credential
      *            The credential that will be persisted to the database.
+     * @throws IOException
+     *             Thrown if the pipeline fails to be closed.
      */
-    public void save(final Credential credential) {
+    public void save(final Credential credential) throws IOException {
         try (Jedis jedis = this.jedisPool.getResource()) {
             final Date updatedTimestamp = new Date();
             if (credential.getCreatedAt() == null) {
@@ -107,17 +114,18 @@ public class CredentialDAO {
             credential.setUpdatedAt(updatedTimestamp);
             credential.setLastAccess(updatedTimestamp);
 
-            final Transaction transaction = jedis.multi();
-            final String credentialKey = this.getKey(credential.getKey());
-            transaction.del(credentialKey);
-            transaction.hmset(credentialKey,
-                    MAPPER.convertValue(credential, new TypeReference<Map<String, String>>() {
-                    }));
-            transaction.zadd(SET_LAST_ACCESSED_KEY, updatedTimestamp.getTime() / 1000,
-                    credentialKey);
-            transaction.zadd(SET_LAST_UPDATED_KEY, updatedTimestamp.getTime() / 1000,
-                    credentialKey);
-            transaction.exec();
+            try (final Pipeline pipeline = jedis.pipelined()) {
+                final String credentialKey = this.getKey(credential.getKey());
+                pipeline.del(credentialKey);
+                pipeline.hmset(credentialKey,
+                        MAPPER.convertValue(credential, new TypeReference<Map<String, String>>() {
+                        }));
+                pipeline.zadd(SET_LAST_ACCESSED_KEY, updatedTimestamp.getTime() / 1000,
+                        credentialKey);
+                pipeline.zadd(SET_LAST_UPDATED_KEY, updatedTimestamp.getTime() / 1000,
+                        credentialKey);
+                pipeline.sync();
+            }
         }
     }
 
