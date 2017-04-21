@@ -1,5 +1,5 @@
 # Recommended is 256, but it requires JCE to be installed.
-symmetricKeySize: 192
+symmetricKeySize: 256
 
 # Cache used to relieve the pressure on the database.
 publicKeysCache: maximumSize=100, expireAfterAccess=10m
@@ -22,31 +22,19 @@ swagger:
   resourcePackage: com.github.mtakaki.credentialstorage.resources
 
 logging:
+  level: ${LOG_LEVEL:-'INFO'}
   appenders:
     - type: console
       threshold: ${LOG_LEVEL:-'INFO'}
       target: stdout
       timeZone: ${TIME_ZONE:-'UTC'}
-    - type: logentries
-      threshold: WARN
-      token: ${LOGENTRIES_TOKEN}
-
-metrics:
-  frequency: 1 minute                       # Default is 1 second.
-  reporters:
-    - type: datadog
-      transport:
-        type: http
-        apiKey: ${DATADOG_KEY}
-        connectTimeout: 1m
-        socketTimeout: 1m
 
 # Jodd Petite dependency injection settings.
 petite:
   useFullTypeNames: true
   automagicConfigurator: true
   useMetrics: true
-  
+
 redis:
   url: ${REDIS_URL:-'redis://localhost:6379'}
   poolConfig:
