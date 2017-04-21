@@ -9,6 +9,12 @@ import io.dropwizard.lifecycle.Managed;
 import lombok.Getter;
 import redis.clients.jedis.JedisPool;
 
+/**
+ * Managed redis connection pool, bound to the application life cycle.
+ *
+ * @author mtakaki
+ *
+ */
 public class JedisManaged implements Managed {
     @Getter
     private final JedisPool jedisPool;
@@ -20,6 +26,8 @@ public class JedisManaged implements Managed {
 
     @Override
     public void start() throws Exception {
+        // Nothing to do here, because the connection pool may need to passed
+        // around, so we need to build the connection pool on the constructor.
     }
 
     @Override

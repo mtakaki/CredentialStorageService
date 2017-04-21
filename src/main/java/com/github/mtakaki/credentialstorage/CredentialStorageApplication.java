@@ -33,10 +33,6 @@ import redis.clients.jedis.JedisPool;
  *
  */
 public class CredentialStorageApplication extends Application<CredentialStorageConfiguration> {
-    public static void main(final String[] args) throws Exception {
-        new CredentialStorageApplication().run(args);
-    }
-
     private final CircuitBreakerBundle<CredentialStorageConfiguration> circuitBreakerBundle = new CircuitBreakerBundle<CredentialStorageConfiguration>() {
         @Override
         protected CircuitBreakerConfiguration getConfiguration(
@@ -54,6 +50,10 @@ public class CredentialStorageApplication extends Application<CredentialStorageC
     };
 
     private final AdminResourceBundle adminResourceBundle = new AdminResourceBundle();
+
+    public static void main(final String[] args) throws Exception {
+        new CredentialStorageApplication().run(args);
+    }
 
     @Override
     public String getName() {

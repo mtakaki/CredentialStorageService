@@ -80,8 +80,6 @@ public class CredentialResourceTest {
 
     @Before
     public void setUp() throws IOException {
-        System.out.println(BASE_64_PUBLIC_KEY);
-
         this.resource = new CredentialResource(this.dao,
                 CacheBuilder.from("maximumSize=100, expireAfterAccess=10m").build(),
                 this.configuration);
