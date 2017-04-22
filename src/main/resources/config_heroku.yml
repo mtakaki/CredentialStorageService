@@ -20,6 +20,8 @@ circuitBreaker:
 
 swagger:
   resourcePackage: com.github.mtakaki.credentialstorage.resources
+  schemes:
+    - https
 
 logging:
   level: ${LOG_LEVEL:-'INFO'}
