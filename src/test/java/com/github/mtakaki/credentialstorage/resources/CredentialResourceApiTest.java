@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.util.Optional;
 
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
@@ -20,7 +21,6 @@ import org.junit.Test;
 import com.github.mtakaki.credentialstorage.CredentialStorageConfiguration;
 import com.github.mtakaki.credentialstorage.database.CredentialDAO;
 import com.github.mtakaki.credentialstorage.database.model.Credential;
-import com.google.common.base.Optional;
 import com.google.common.cache.CacheBuilder;
 
 import io.dropwizard.testing.junit.ResourceTestRule;
@@ -85,7 +85,7 @@ public class CredentialResourceApiTest {
     @BeforeClass
     public static void setUp() throws IOException {
         when(dao.getCredentialByKey(BASE_64_PUBLIC_KEY)).thenReturn(Optional.of(credential));
-        when(dao.getCredentialByKey("missing")).thenReturn(Optional.absent());
+        when(dao.getCredentialByKey("missing")).thenReturn(Optional.empty());
     }
 
     @Test

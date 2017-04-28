@@ -6,6 +6,7 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -18,7 +19,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.mtakaki.credentialstorage.database.model.Credential;
-import com.google.common.base.Optional;
 
 import jodd.petite.meta.PetiteBean;
 import lombok.AllArgsConstructor;
@@ -66,8 +66,16 @@ public class CredentialDAO {
      */
     public Optional<Credential> getCredentialByKey(final String key) throws IOException {
         try (Jedis jedis = this.jedisPool.getResource()) {
+            final String formattedKey = this.getRedisCredentialKey(key);
+
+            // Avoiding the whole pipelined set of commands if the key doesn't
+            // even exist.
+            if (!jedis.exists(formattedKey)) {
+                return Optional.empty();
+            }
+
             try (final Pipeline pipeline = jedis.pipelined()) {
-                pipeline.watch(this.getKey(key));
+                pipeline.watch(formattedKey);
                 /*
                  * Transaction does the following steps: 1. Retrieve the object
                  * from redis, with the given key. 2. Update the lastAccess
@@ -75,23 +83,32 @@ public class CredentialDAO {
                  * zrange that keeps all credentials ordered for auditing.
                  */
                 final Response<Map<String, String>> credentialJson = pipeline
-                        .hgetAll(this.getKey(key));
+                        .hgetAll(formattedKey);
                 // We update lastAccess after the get.
                 final DateTime lastAccesTimestamp = new DateTime();
-                pipeline.hset(this.getKey(key), "lastAccess",
+                pipeline.hset(formattedKey, "lastAccess",
                         TIMESTAMP_FORMATTER.print(lastAccesTimestamp));
                 pipeline.zadd(SET_LAST_ACCESSED_KEY,
                         lastAccesTimestamp.toDate().getTime() / 1000,
-                        this.getKey(key));
+                        formattedKey);
                 pipeline.sync();
                 return this.createAndPopulateBean(credentialJson.get());
             }
         }
     }
 
+    /**
+     * Converts the hash map into a {@link Credential}. We store the credential
+     * as a map in redis.
+     *
+     * @param propertyValues
+     *            The map coming from redis.
+     * @return The converted credential object. It will be
+     *         {@code Optional.absent()} if the map is empty.
+     */
     private Optional<Credential> createAndPopulateBean(final Map<String, String> propertyValues) {
         if (propertyValues.isEmpty()) {
-            return Optional.absent();
+            return Optional.empty();
         }
 
         return Optional.of(MAPPER.convertValue(propertyValues, Credential.class));
@@ -115,7 +132,7 @@ public class CredentialDAO {
             credential.setLastAccess(updatedTimestamp);
 
             try (final Pipeline pipeline = jedis.pipelined()) {
-                final String credentialKey = this.getKey(credential.getKey());
+                final String credentialKey = this.getRedisCredentialKey(credential.getKey());
                 pipeline.del(credentialKey);
                 pipeline.hmset(credentialKey,
                         MAPPER.convertValue(credential, new TypeReference<Map<String, String>>() {
@@ -139,7 +156,7 @@ public class CredentialDAO {
      */
     public boolean deleteByKey(final String key) {
         try (Jedis jedis = this.jedisPool.getResource()) {
-            return jedis.del(this.getKey(key)) != 0L;
+            return jedis.del(this.getRedisCredentialKey(key)) != 0L;
         }
     }
 
@@ -151,7 +168,8 @@ public class CredentialDAO {
     public List<String> getAllCredentialsKey() {
         try (Jedis jedis = this.jedisPool.getResource()) {
             final List<String> keys = new LinkedList<>();
-            ScanResult<String> result = jedis.scan("0", new ScanParams().match(this.getKey("*")));
+            ScanResult<String> result = jedis.scan("0",
+                    new ScanParams().match(this.getRedisCredentialKey("*")));
             do {
                 keys.addAll(result.getResult().parallelStream()
                         .map(key -> key.replace(KEY_PREFIX, "")).collect(Collectors.toList()));
@@ -169,7 +187,7 @@ public class CredentialDAO {
      *            The credential public key.
      * @return The key properly formatted.
      */
-    private String getKey(final String key) {
+    private String getRedisCredentialKey(final String key) {
         return String.format(KEY_FORMAT, key);
     }
 

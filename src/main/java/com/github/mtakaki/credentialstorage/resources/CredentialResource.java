@@ -3,10 +3,12 @@ package com.github.mtakaki.credentialstorage.resources;
 import java.io.IOException;
 import java.net.URI;
 import java.security.NoSuchAlgorithmException;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 
 import javax.crypto.SecretKey;
 import javax.validation.Valid;
+import javax.validation.constraints.NotNull;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -30,7 +32,6 @@ import com.github.mtakaki.credentialstorage.database.model.view.UserView;
 import com.github.mtakaki.credentialstorage.encryption.EncryptionUtil;
 import com.github.mtakaki.credentialstorage.encryption.InitializationException;
 import com.github.mtakaki.dropwizard.circuitbreaker.jersey.CircuitBreaker;
-import com.google.common.base.Optional;
 import com.google.common.cache.Cache;
 
 import io.swagger.annotations.Api;
@@ -52,7 +53,7 @@ import lombok.AllArgsConstructor;
 @PetiteBean
 public class CredentialResource {
     private static final String CREDENTIAL_PATH = "/credential/";
-    private static final String PUBLIC_KEY_HEADER = "X-Auth-RSA";
+    public static final String PUBLIC_KEY_HEADER = "X-Auth-RSA";
 
     private final CredentialDAO credentialDAO;
     private final Cache<String, EncryptionUtil> encryptionUtil;
@@ -83,15 +84,16 @@ public class CredentialResource {
     @CircuitBreaker
     public Response storeCredential(
             @HeaderParam(PUBLIC_KEY_HEADER) @NotEmpty final String userPublicKey,
-            @Valid final Credential credential)
+            @NotNull @Valid final Credential credential)
             throws ExecutionException, NoSuchAlgorithmException, InitializationException,
             IOException {
         // TODO Create token and client signs it with the private key. The
         // server must verify the signature is valid, using client's public key.
-
+        this.sanitizeCredential(credential);
         final Optional<Credential> savedCredentialOptional = this.credentialDAO
                 .getCredentialByKey(userPublicKey);
-        this.fillUpEncryptAndSaveCredential(userPublicKey, savedCredentialOptional.or(credential),
+        this.fillUpEncryptAndSaveCredential(userPublicKey,
+                savedCredentialOptional.orElse(credential),
                 credential);
 
         return Response.created(URI.create(CREDENTIAL_PATH + userPublicKey)).build();
@@ -99,16 +101,17 @@ public class CredentialResource {
 
     @PUT
     @ApiOperation(
-        value = "Updates the credential pair stored under the given public asymmetrical key.",
+        value = "Stores/updates the credential pair stored under the given public asymmetrical key.",
         notes = "The credential pair is re-encrypted with a symetric algorithm and its new key is stored and encrypted using the given assymetrical public key.")
     @Consumes(MediaType.APPLICATION_JSON)
     @Timed
     @CircuitBreaker
     public Response updateCredential(
             @HeaderParam(PUBLIC_KEY_HEADER) @NotEmpty final String userPublicKey,
-            @Valid final Credential credential)
+            @NotNull @Valid final Credential credential)
             throws ExecutionException, InitializationException, NoSuchAlgorithmException,
             IOException {
+        this.sanitizeCredential(credential);
         // As this is an update, we need to query and verify the credentials
         // exist in the database.
         final Optional<Credential> savedCredentialOptional = this.credentialDAO
@@ -191,6 +194,22 @@ public class CredentialResource {
             throws ExecutionException {
         return this.encryptionUtil.get(userPublicKey, () -> new EncryptionUtil(userPublicKey,
                 CredentialResource.this.configuration.getSymmetricKeySize()));
+    }
+
+    /**
+     * Removes the fields that should not be set by the incoming credential.
+     * This is probably not a good idea to use the same class to store the
+     * storage layer and the DTO. Leaving at it is for now, but probably should
+     * create a separate class for it.
+     *
+     * @param credential
+     *            The incoming credential that will have some of its fields
+     *            wiped out.
+     */
+    private void sanitizeCredential(final Credential credential) {
+        credential.setCreatedAt(null);
+        credential.setLastAccess(null);
+        credential.setUpdatedAt(null);
     }
 
     @DELETE

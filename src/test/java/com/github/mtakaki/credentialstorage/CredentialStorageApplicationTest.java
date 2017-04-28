@@ -35,8 +35,7 @@ import redis.embedded.ports.EphemeralPortProvider;
 
 public class CredentialStorageApplicationTest {
     private static final String X_AUTH_RSA_HEADER = "X-Auth-RSA";
-    private static final String AUDIT_END_POINT = "http://localhost:%d/admin/audit/";
-    private static final String AUDIT_LAST_ACCESSED_END_POINT = "http://localhost:%d/admin/audit/last_accessed";
+    private static final String AUDIT_END_POINT = "http://localhost:%d/admin/audit%s";
     private static final String CREDENTIAL_END_POINT = "http://localhost:%d/credential";
 
     private static final byte[] TEST_RSA_PUBLIC_KEY = new byte[] { 48, -126, 2, 34, 48, 13, 6, 9,
@@ -143,12 +142,11 @@ public class CredentialStorageApplicationTest {
     private Client client;
 
     private final Credential credential = Credential.builder()
-            .symmetricKey(BASE_64_PUBLIC_KEY)
             .primary("user")
-            .secondary("password").build();
+            .secondary("password")
+            .description("my_database").build();
 
     private final Credential credential2 = Credential.builder()
-            .symmetricKey(BASE_64_PUBLIC_KEY_2)
             .primary("another").build();
 
     @Before
@@ -179,7 +177,7 @@ public class CredentialStorageApplicationTest {
     public void testAuditListCredentials()
             throws JsonParseException, JsonMappingException, IOException {
         final Response response = this.client
-                .target(String.format(AUDIT_END_POINT, this.RULE.getAdminPort()))
+                .target(String.format(AUDIT_END_POINT, this.RULE.getAdminPort(), "/list"))
                 .request()
                 .get();
 
@@ -200,7 +198,7 @@ public class CredentialStorageApplicationTest {
                         .isEqualTo(Status.CREATED.getStatusCode());
 
         final Response updatedResponse = this.client
-                .target(String.format(AUDIT_END_POINT, this.RULE.getAdminPort()))
+                .target(String.format(AUDIT_END_POINT, this.RULE.getAdminPort(), "/list"))
                 .request()
                 .get();
 
@@ -219,7 +217,7 @@ public class CredentialStorageApplicationTest {
     public void testAuditGetLastAccessedBy()
             throws JsonParseException, JsonMappingException, IOException {
         final Response response = this.client
-                .target(String.format(AUDIT_LAST_ACCESSED_END_POINT, this.RULE.getAdminPort()))
+                .target(String.format(AUDIT_END_POINT, this.RULE.getAdminPort(), "/last_accessed"))
                 .queryParam("timestamp", new Date().getTime() / 1000)
                 .request()
                 .get();
@@ -241,7 +239,7 @@ public class CredentialStorageApplicationTest {
                         .isEqualTo(Status.CREATED.getStatusCode());
 
         final Response updatedResponse = this.client
-                .target(String.format(AUDIT_LAST_ACCESSED_END_POINT, this.RULE.getAdminPort()))
+                .target(String.format(AUDIT_END_POINT, this.RULE.getAdminPort(), "/last_accessed"))
                 .queryParam("timestamp", new Date().getTime() / 1000)
                 .request()
                 .get();
@@ -263,7 +261,7 @@ public class CredentialStorageApplicationTest {
         // We look for credentials that have been accessed 10 minutes ago, which
         // should be none.
         final Response response = this.client
-                .target(String.format(AUDIT_LAST_ACCESSED_END_POINT, this.RULE.getAdminPort()))
+                .target(String.format(AUDIT_END_POINT, this.RULE.getAdminPort(), "/last_accessed"))
                 .queryParam("timestamp", new DateTime().minusMinutes(10).toDate().getTime() / 1000)
                 .request()
                 .get();
@@ -292,6 +290,35 @@ public class CredentialStorageApplicationTest {
         assertThat(responseCredential.getSymmetricKey()).hasSize(684);
         assertThat(responseCredential.getPrimary()).hasSize(24);
         assertThat(responseCredential.getSecondary()).hasSize(24);
+        // These are admin-view only.
+        assertThat(responseCredential.getLastAccess()).isNull();
+        assertThat(responseCredential.getCreatedAt()).isNull();
+        assertThat(responseCredential.getUpdatedAt()).isNull();
+        assertThat(responseCredential.getDescription()).isNull();
+    }
+
+    @Test
+    public void testAuditGetCredential()
+            throws JsonParseException, JsonMappingException, IOException {
+        final Response response = this.client
+                .target(String.format(AUDIT_END_POINT, this.RULE.getAdminPort(), ""))
+                .request()
+                .header(X_AUTH_RSA_HEADER, BASE_64_PUBLIC_KEY)
+                .get();
+
+        assertThat(response.getStatus()).isEqualTo(Status.OK.getStatusCode());
+        assertThat(response.getMediaType()).isEqualTo(MediaType.APPLICATION_JSON_TYPE);
+
+        final Credential responseCredential = IntegrationTestUtil.extractEntity(response,
+                Credential.class);
+        assertThat(responseCredential.getSymmetricKey()).hasSize(684);
+        assertThat(responseCredential.getPrimary()).hasSize(24);
+        assertThat(responseCredential.getSecondary()).hasSize(24);
+        // These are admin-view only.
+        assertThat(responseCredential.getLastAccess()).isNotNull();
+        assertThat(responseCredential.getCreatedAt()).isNotNull();
+        assertThat(responseCredential.getUpdatedAt()).isNotNull();
+        assertThat(responseCredential.getDescription()).isEqualTo("my_database");
     }
 
     @Test
@@ -344,7 +371,11 @@ public class CredentialStorageApplicationTest {
         assertThat(responseCredential.getSymmetricKey()).hasSize(684);
         assertThat(responseCredential.getPrimary()).hasSize(24);
         assertThat(responseCredential.getSecondary()).isNull();
-        assertThat(responseCredential.getLastAccess()).isNotNull();
+        // These are admin-view only.
+        assertThat(responseCredential.getLastAccess()).isNull();
+        assertThat(responseCredential.getCreatedAt()).isNull();
+        assertThat(responseCredential.getUpdatedAt()).isNull();
+        assertThat(responseCredential.getDescription()).isNull();
     }
 
     @Test
@@ -382,7 +413,57 @@ public class CredentialStorageApplicationTest {
         assertThat(responseCredential.getSymmetricKey()).hasSize(684);
         assertThat(responseCredential.getPrimary()).hasSize(24);
         assertThat(responseCredential.getSecondary()).isNull();
+        // These are admin-view only.
+        assertThat(responseCredential.getLastAccess()).isNull();
+        assertThat(responseCredential.getCreatedAt()).isNull();
+        assertThat(responseCredential.getUpdatedAt()).isNull();
+        assertThat(responseCredential.getDescription()).isNull();
+    }
+
+    @Test
+    public void testPostNewCredentialAuditInformationIsNotWritable()
+            throws JsonParseException, JsonMappingException, IOException {
+        // Verifying that our second credential is not present yet.
+        assertThat(this.client
+                .target(String.format(CREDENTIAL_END_POINT, this.RULE.getLocalPort()))
+                .request()
+                .header(X_AUTH_RSA_HEADER, BASE_64_PUBLIC_KEY_2)
+                .get().getStatus()).isEqualTo(Status.NOT_FOUND.getStatusCode());
+
+        // Posting the new credential.
+        final Credential credential = Credential.builder()
+                .primary("another")
+                .description("Another credential")
+                .createdAt(DateTime.parse("2001-09-01").toDate()).build();
+        final Response response = this.client
+                .target(String.format(CREDENTIAL_END_POINT, this.RULE.getLocalPort()))
+                .request()
+                .header(X_AUTH_RSA_HEADER, BASE_64_PUBLIC_KEY_2)
+                .post(Entity.json(credential));
+        assertThat(response.getStatus()).isEqualTo(Status.CREATED.getStatusCode());
+
+        // Now verifying that the new credential was properly stored, including
+        // missing the secondary credential.
+        final Response getResponse = this.client
+                .target(String.format(AUDIT_END_POINT, this.RULE.getAdminPort(), ""))
+                .request()
+                .header(X_AUTH_RSA_HEADER, BASE_64_PUBLIC_KEY_2)
+                .get();
+
+        assertThat(getResponse.getStatus()).isEqualTo(Status.OK.getStatusCode());
+        assertThat(getResponse.getMediaType()).isEqualTo(MediaType.APPLICATION_JSON_TYPE);
+
+        final Credential responseCredential = IntegrationTestUtil.extractEntity(getResponse,
+                Credential.class);
+        assertThat(responseCredential.getSymmetricKey()).hasSize(684);
+        assertThat(responseCredential.getPrimary()).hasSize(24);
+        assertThat(responseCredential.getSecondary()).isNull();
+        // These are admin-view only.
         assertThat(responseCredential.getLastAccess()).isNotNull();
+        assertThat(responseCredential.getCreatedAt()).isNotNull()
+                .isNotEqualTo(DateTime.parse("2001-09-01").toDate());
+        assertThat(responseCredential.getUpdatedAt()).isNotNull();
+        assertThat(responseCredential.getDescription()).isEqualTo("Another credential");
     }
 
     @Test

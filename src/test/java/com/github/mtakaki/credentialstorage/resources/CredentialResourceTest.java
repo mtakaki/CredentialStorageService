@@ -5,6 +5,7 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 
 import javax.ws.rs.core.Response;
@@ -21,7 +22,6 @@ import org.mockito.runners.MockitoJUnitRunner;
 import com.github.mtakaki.credentialstorage.CredentialStorageConfiguration;
 import com.github.mtakaki.credentialstorage.database.CredentialDAO;
 import com.github.mtakaki.credentialstorage.database.model.Credential;
-import com.google.common.base.Optional;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.net.HttpHeaders;
 
@@ -84,7 +84,7 @@ public class CredentialResourceTest {
                 CacheBuilder.from("maximumSize=100, expireAfterAccess=10m").build(),
                 this.configuration);
         when(this.configuration.getSymmetricKeySize()).thenReturn(128);
-        when(this.dao.getCredentialByKey(any())).thenReturn(Optional.absent());
+        when(this.dao.getCredentialByKey(any())).thenReturn(Optional.empty());
         when(this.dao.getCredentialByKey(BASE_64_PUBLIC_KEY)).thenReturn(Optional.of(credential));
     }
 

@@ -25,6 +25,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class Credential {
+    public static final String TIMESTAMP_FORMAT = "yyyy-MM-dd'T'hh:mm:ss.SSS";
+
     @JsonView(AdminView.class)
     private String key;
 
@@ -37,14 +39,18 @@ public class Credential {
     // The length would never be longer than 876 because it's encrypted.
     private String secondary;
 
+    @JsonView(AdminView.class)
     private String description;
 
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'hh:mm:ss.SSS")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = TIMESTAMP_FORMAT)
+    @JsonView(AdminView.class)
     private Date lastAccess;
 
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'hh:mm:ss.SSS")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = TIMESTAMP_FORMAT)
+    @JsonView(AdminView.class)
     private Date createdAt;
 
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'hh:mm:ss.SSS")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = TIMESTAMP_FORMAT)
+    @JsonView(AdminView.class)
     private Date updatedAt;
 }

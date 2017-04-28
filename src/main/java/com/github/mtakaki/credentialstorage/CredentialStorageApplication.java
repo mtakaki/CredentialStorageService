@@ -1,5 +1,6 @@
 package com.github.mtakaki.credentialstorage;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import com.github.mtakaki.credentialstorage.configuration.RedisConfiguration;
 import com.github.mtakaki.credentialstorage.healthchecks.RedisHealthCheck;
@@ -17,6 +18,7 @@ import com.google.common.cache.CacheBuilder;
 import io.dropwizard.Application;
 import io.dropwizard.configuration.EnvironmentVariableSubstitutor;
 import io.dropwizard.configuration.SubstitutingSourceProvider;
+import io.dropwizard.jersey.jackson.JacksonBinder;
 import io.dropwizard.jersey.setup.JerseyEnvironment;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
@@ -86,12 +88,14 @@ public class CredentialStorageApplication extends Application<CredentialStorageC
         this.registerExternalDependencies(configuration, environment, jedisManaged,
                 petiteContainer);
 
-        environment.getObjectMapper().setPropertyNamingStrategy(PropertyNamingStrategy.SNAKE_CASE);
+        environment.getObjectMapper().setPropertyNamingStrategy(PropertyNamingStrategy.SNAKE_CASE)
+                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         environment.jersey().register(petiteContainer.getBean(CredentialResource.class));
 
         // Admin resources.
         final JerseyEnvironment adminJerseyEnvironment = this.adminResourceBundle
                 .getJerseyEnvironment();
+        adminJerseyEnvironment.register(new JacksonBinder(environment.getObjectMapper()));
         adminJerseyEnvironment.register(petiteContainer.getBean(AuditResource.class));
 
         // Health checks
