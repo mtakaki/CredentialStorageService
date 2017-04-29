@@ -486,7 +486,7 @@ public class CredentialStorageApplicationTest {
                 .header(X_AUTH_RSA_HEADER, BASE_64_PUBLIC_KEY)
                 .post(Entity.json("{\"missing\":\"data\"}"));
 
-        assertThat(response.getStatus()).isEqualTo(Status.BAD_REQUEST.getStatusCode());
+        assertThat(response.getStatus()).isEqualTo(422);
     }
 
     @Test
