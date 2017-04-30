@@ -11,7 +11,7 @@ A RESTful Java micro-service that can be used to store resource credentials in a
 
 Its main purpose is to remove the need to store credential in code or configuration files and, instead, have the clients retrieve the credentials it needs from a centralized server. It also facilitates credential rotation, as clients can periodically retrieve the credentials from the server without downtime.
 
-The data is encrypted using a random AES symmetric key and this key is encrypted using the client's RSA public key. So the data can only be retrieved using the private key, which resides in the client.
+The data is encrypted using a random AES symmetric key and this key is encrypted using the client's RSA public key. So, the data can only be retrieved using the private key, which resides in the client. The server doesn't have the ability to decrypt its own information, so even if the data is stolen, it can't be decrypted without the private key.
 
 There's a test sandbox server running the service available at: [https://credential-service.herokuapp.com/swagger](https://credential-service.herokuapp.com/swagger) Please keep in mind this is a test server and it may not be up all the time and it may not be secured.
 

@@ -40,6 +40,7 @@ import redis.clients.jedis.ScanResult;
 public class CredentialDAO {
     private static final String SET_LAST_UPDATED_KEY = "last_updated";
     private static final String SET_LAST_ACCESSED_KEY = "last_accessed";
+    private static final String SET_ACCESS_LOG_KEY = "access_log";
     private static final String KEY_PREFIX = "credential:";
     private static final String KEY_FORMAT = KEY_PREFIX + "%s";
     private static final ObjectMapper MAPPER = new ObjectMapper()
