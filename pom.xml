@@ -3,12 +3,12 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.github.mtakaki</groupId>
-    <artifactId>credential-storage</artifactId>
+    <artifactId>credential-storage-parent</artifactId>
     <version>0.0.3-SNAPSHOT</version>
-    <packaging>jar</packaging>
+    <packaging>pom</packaging>
 
-    <name>Credential Storage Service</name>
-    <description>Credential storage micro-service</description>
+    <name>Credential Storage Service Parent</name>
+    <description>Credential storage micro-service umbrella module</description>
     <url>https://github.com/mtakaki/CredentialStorageService</url>
 
     <licenses>
@@ -30,7 +30,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <dropwizard.version>1.1.0</dropwizard.version>
+        <dropwizard.version>1.1.3</dropwizard.version>
         <!-- Flaky test setting, re-run more 2 times in case of a failure -->
         <surefire.rerunFailingTestsCount>2</surefire.rerunFailingTestsCount>
     </properties>
@@ -53,70 +53,13 @@
         </repository>
     </distributionManagement>
 
+    <modules>
+        <module>server</module>
+        <module>client</module>
+    </modules>
+
     <dependencies>
-        <dependency>
-            <groupId>org.glassfish.jersey.bundles</groupId>
-            <artifactId>jaxrs-ri</artifactId>
-            <version>2.25</version>
-        </dependency>
-
-        <!-- Dropwizard packages -->
-        <dependency>
-            <groupId>io.dropwizard</groupId>
-            <artifactId>dropwizard-core</artifactId>
-            <version>${dropwizard.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>io.dropwizard</groupId>
-            <artifactId>dropwizard-testing</artifactId>
-            <version>${dropwizard.version}</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>io.dropwizard</groupId>
-            <artifactId>dropwizard-client</artifactId>
-            <version>${dropwizard.version}</version>
-            <scope>test</scope>
-        </dependency>
-
-        <!-- Redis is our data storage -->
-        <dependency>
-            <groupId>redis.clients</groupId>
-            <artifactId>jedis</artifactId>
-            <version>2.9.0</version>
-        </dependency>
-
-        <!-- Swagger for documenting the API -->
-        <dependency>
-            <groupId>com.smoketurner</groupId>
-            <artifactId>dropwizard-swagger</artifactId>
-            <version>1.1.0-1</version>
-        </dependency>
-        
-        <!-- Allow admin resources -->
-        <dependency>
-            <groupId>com.github.mtakaki</groupId>
-            <artifactId>dropwizard-admin-resource</artifactId>
-            <version>1.1.0</version>
-        </dependency>
-
-        <!-- Circuit breaker to avoid issues escalate -->
-        <dependency>
-            <groupId>com.github.mtakaki</groupId>
-            <artifactId>dropwizard-circuitbreaker</artifactId>
-            <version>1.1.0</version>
-        </dependency>
-
-        <!-- Dependency injection -->
-        <dependency>
-            <groupId>com.github.mtakaki</groupId>
-            <artifactId>dropwizard-petite</artifactId>
-            <version>1.0.0</version>
-        </dependency>
-
-        <!-- Avoids boilerplate code -->
+       <!-- Avoids boilerplate code -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
@@ -124,53 +67,7 @@
             <scope>provided</scope>
         </dependency>
 
-        <dependency>
-            <groupId>commons-beanutils</groupId>
-            <artifactId>commons-beanutils</artifactId>
-            <version>1.9.3</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>commons-logging</groupId>
-                    <artifactId>commons-logging</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
-        <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-            <version>21.0</version>
-        </dependency>
-
-        <!-- Pushing logs to logentries service -->
-        <dependency>
-            <groupId>com.github.mtakaki</groupId>
-            <artifactId>logentries-appender</artifactId>
-            <version>0.0.3</version>
-        </dependency>
-
-        <!-- Pushing metrics to datadoghq -->
-        <dependency>
-            <groupId>org.coursera</groupId>
-            <artifactId>dropwizard-metrics-datadog</artifactId>
-            <version>1.1.2</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>commons-logging</groupId>
-                    <artifactId>commons-logging</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
         <!-- Test dependencies -->
-        <!-- In-memory redis for integration tests -->
-        <dependency>
-            <groupId>com.github.kstyrc</groupId>
-            <artifactId>embedded-redis</artifactId>
-            <version>0.6</version>
-            <scope>test</scope>
-        </dependency>
-
         <!-- jUnit for unit testing -->
         <dependency>
             <groupId>junit</groupId>
@@ -192,23 +89,6 @@
             <version>3.6.2</version>
             <scope>test</scope>
         </dependency>
-        <!-- Container for testing resources -->
-        <dependency>
-            <groupId>org.glassfish.jersey.test-framework.providers</groupId>
-            <artifactId>jersey-test-framework-provider-grizzly2</artifactId>
-            <version>2.22.1</version>
-            <scope>test</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>javax.servlet</groupId>
-                    <artifactId>javax.servlet-api</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>junit</groupId>
-                    <artifactId>junit</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
     </dependencies>
 
     <build>
@@ -225,43 +105,6 @@
                 <goals>
                     <goal>compile</goal>
                 </goals>
-            </plugin>
-            <!-- Building fat jar with all the dependencies. -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-shade-plugin</artifactId>
-                <version>2.3</version>
-                <configuration>
-                    <createDependencyReducedPom>true</createDependencyReducedPom>
-                    <filters>
-                        <filter>
-                            <artifact>*:*</artifact>
-                            <excludes>
-                                <exclude>META-INF/*.SF</exclude>
-                                <exclude>META-INF/*.DSA</exclude>
-                                <exclude>META-INF/*.RSA</exclude>
-                            </excludes>
-                        </filter>
-                    </filters>
-                </configuration>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>shade</goal>
-                        </goals>
-                        <configuration>
-                            <transformers>
-                                <transformer
-                                    implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
-                                <transformer
-                                    implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>com.github.mtakaki.credentialstorage.CredentialStorageApplication</mainClass>
-                                </transformer>
-                            </transformers>
-                        </configuration>
-                    </execution>
-                </executions>
             </plugin>
             <!-- Versioning the JAR -->
             <plugin>
@@ -298,24 +141,6 @@
                 <configuration>
                     <repoToken>${env.COVERALLS_REPO_TOKEN}</repoToken>
                 </configuration>
-            </plugin>
-            <!-- Creating bundled tarball including the fat JAR and config 
-                files. -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <configuration>
-                    <descriptor>src/assembly/bin.xml</descriptor>
-                    <finalName>bundled-${project.artifactId}-${project.version}</finalName>
-                </configuration>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>single</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>
             <!-- Sign artifacts with PGP -->
             <plugin>
